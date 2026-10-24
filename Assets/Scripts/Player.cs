@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 namespace SFM.Core
 {
+    [System.Serializable]
     public abstract class Player 
     {
         public string Name;
@@ -18,6 +19,9 @@ namespace SFM.Core
         // Hệ số nhân mọi chỉ số khi đá lệch vị trí (Team.RefreshPositionMultipliers tính qua PositionFit). 1 = đúng vị trí.
         public float PositionMultiplier = 1f;
 
+        // Đã bị thẻ đỏ trong trận hiện tại (Team.SendOff đặt true, ResetForMatch đặt lại false)
+        public bool SentOff = false;
+
         // Hệ số IQ dùng cho các chỉ số: 1 + (IQ - 50) / 500
         public float GetIQMultiplier() => 1f + (IQ - 50f) / 500f;
 
@@ -30,6 +34,7 @@ namespace SFM.Core
         public void ResetForMatch()
         {
             Stamina = 100f;
+            SentOff = false;
             Goals = Assists = Shots = Saves = Tackles = Passes = Dribbles = Fouls = 0;
         }
 

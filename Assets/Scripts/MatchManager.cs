@@ -51,7 +51,8 @@ namespace SFM.Core
         private const float LongShotBlocked = 0.35f;
         private const float LongShotOffTarget = 0.45f;
         private const float HeaderOffTarget = 0.50f;
-        private const float RedCardChance = 0.10f;
+        private const float RedCardChance = 0.10f;      // xác suất thẻ đỏ khi phạm lỗi kéo người (khớp RED_CARD_CHANCE bên JS)
+        private const float ManAdvantage = 0.08f;       // mỗi người hơn = +8% xác suất giành quyền tấn công (khớp MAN_ADVANTAGE bên JS)
 
         private class Attack
         {
@@ -115,7 +116,7 @@ namespace SFM.Core
 
         private void OnMinutePassed()
         {
-            // 1. Trừ thể lực (theo vị trí) cho tất cả cầu thủ
+            // 1. Trừ thể lực (theo vị trí và theo quân số) cho tất cả cầu thủ
             HomeTeam.UpdateTeamStamina(1f);
             AwayTeam.UpdateTeamStamina(1f);
 
@@ -125,7 +126,12 @@ namespace SFM.Core
 
         private void SimulateEvent()
         {
-            bool homeAttacking = UnityEngine.Random.value < 0.5f;
+            // Lệch quân số: mỗi người hơn = +ManAdvantage xác suất giành quyền tấn công (giới hạn 0.2..0.8)
+            int homeCount = HomeTeam.PlayersOnPitch;
+            int awayCount = AwayTeam.PlayersOnPitch;
+            float pHomeAttack = Mathf.Clamp(0.5f + ManAdvantage * (homeCount - awayCount), 0.2f, 0.8f);
+
+            bool homeAttacking = UnityEngine.Random.value < pHomeAttack;
             var ctx = new Attack
             {
                 HomeAttacking = homeAttacking,
@@ -219,10 +225,19 @@ namespace SFM.Core
                 // Tình huống 9: hậu vệ thua đua tốc độ có thể phạm lỗi
                 if (MatchEngine.Situation9_FoulCheck(d2.Player))
                 {
-                    d2.Player.Fouls++;
-                    string card = UnityEngine.Random.value < RedCardChance ? "THẺ ĐỎ" : "THẺ VÀNG";
-                    // TODO: thẻ đỏ chưa có hậu quả (loại cầu thủ khỏi sân)
-                    Log($"{card} cho {d2.Player.Name} sau pha kéo người với {creator.Player.Name}!");
+                    var fouler = d2.Player;   // giữ lại tham chiếu: sau SendOff thì d2.Player = null
+                    fouler.Fouls++;
+
+                    bool wantsRed = UnityEngine.Random.value < RedCardChance;
+                    // Thẻ đỏ: đội phòng ngự mất người, ô bị bỏ trống. Nếu đội chỉ còn 7 người thì chỉ nhận thẻ vàng.
+                    if (wantsRed && ctx.Def.SendOff(d2, CurrentMinute))
+                    {
+                        Log($"THẺ ĐỎ cho {fouler.Name} sau pha kéo người với {creator.Player.Name}! {ctx.Def.TeamName} còn {ctx.Def.PlayersOnPitch} người.");
+                    }
+                    else
+                    {
+                        Log($"THẺ VÀNG cho {fouler.Name} sau pha kéo người với {creator.Player.Name}!");
+                    }
                 }
                 else
                 {

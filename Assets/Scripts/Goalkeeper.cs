@@ -2,6 +2,7 @@ using UnityEngine;
 
 namespace SFM.Core
 {
+    [System.Serializable]
     public class Goalkeeper : Player 
     {
         [Header("Bộ 6 chỉ số gốc thủ môn")]
