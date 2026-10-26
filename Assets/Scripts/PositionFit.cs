@@ -45,13 +45,15 @@ namespace SFM.Core
             { "ST",  new Vector2(6f, 0f) },
         };
 
-        /// <summary>Slot trái/phải của vị trí trung tâm quy về vị trí gốc (LCB -> CB, LST -> ST...).</summary>
+        /// <summary>Slot trái/phải hoặc biến thể quy về vị trí gốc (LCB/RCB -> CB, LWB -> LB, RWB -> RB...).</summary>
         public static string Canonical(string role)
         {
             string r = (role ?? "").Trim().ToUpperInvariant();
             switch (r)
             {
                 case "LCB": case "RCB": return "CB";
+                case "LWB": return "LB";
+                case "RWB": return "RB";
                 case "LST": case "RST": return "ST";
                 case "LDM": case "RDM": return "CDM";
                 case "LCM": case "RCM": return "CM";

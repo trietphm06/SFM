@@ -7,15 +7,15 @@ namespace SFM.Core
         // ===== Hệ số cân bằng (đã tune ở bản JS, chỉnh ở đây cho gọn) =====
         public const float BuildupDefenderFactor = 0.75f;  // Chuyền ngắn: hậu vệ ép yếu hơn
         public const float CrossDefenderFactor = 0.9f;     // Tạt bóng
-        public const float OneVOneGkBuff = 2.4f;           // Thủ môn trong tình huống 1v1 (TUNING.gk1v1)
-        public const float ThroughBallGkBuff = 2.5f;       // Sút sau đường chọc khe (TUNING.gkThrough)
+        public const float OneVOneGkBuff = 2.2f;           // Thủ môn trong tình huống 1v1 (TUNING.gk1v1)
+        public const float ThroughBallGkBuff = 2.3f;       // Sút sau đường chọc khe (TUNING.gkThrough)
         public const float HeaderGkBuff = 2.6f;            // Đánh đầu sau tạt (TUNING.gkHeader)
         public const float LongShotFactor = 0.75f;         // Sút xa: cả 2 vế nhân 0.75
         public const float LongShotGkBuff = 2.1f;          // Thủ môn khi bị sút xa (TUNING.gkLong)
 
         /// <summary>
         /// Công thức Vạn năng (The Master Formula)
-        /// Tỷ lệ chiến thắng của A (%) = (A / (A + B)) * 100
+        /// Sử dụng power curve 1.25 khớp bản JS để tạo lợi thế thực tế cho cầu thủ/đội có chỉ số vượt trội
         /// </summary>
         public static bool ResolveContest(float statA, float statB)
         {
@@ -25,8 +25,10 @@ namespace SFM.Core
                 return Random.Range(0, 2) == 0; 
             }
 
-            float winProbabilityA = (statA / (statA + statB)) * 100f;
-            float roll = Random.Range(1f, 100f);
+            float pa = Mathf.Pow(Mathf.Max(0.1f, statA), 1.25f);
+            float pb = Mathf.Pow(Mathf.Max(0.1f, statB), 1.25f);
+            float winProbabilityA = (pa / (pa + pb)) * 100f;
+            float roll = Random.Range(0f, 100f);
             
             // Nếu R <= Tỷ lệ thắng -> A thắng
             return roll <= winProbabilityA;

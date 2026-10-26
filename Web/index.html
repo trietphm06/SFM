@@ -411,7 +411,7 @@ let defaultDB = [
     ["J. Vardy","ST","","2023","Base",84,84,70,79,52,72,0,0,0,0,0,0,88,73],
     ["Iago Aspas","ST","","2023","Base",82,85,79,86,35,63,0,0,0,0,0,0,84,70],
     ["Gerard Moreno","ST","","2023","Base",78,86,77,83,46,72,0,0,0,0,0,0,85,77],
-    ["F. Kostić","LM","LWB","2023","Base",84,78,82,82,68,80,0,0,0,0,0,0,82,90],
+    ["F. Kostić","LM","LB","2023","Base",84,78,82,82,68,80,0,0,0,0,0,0,82,90],
     ["Diogo Jota","CF","LW","2023","Base",85,83,75,85,57,77,0,0,0,0,0,0,87,83],
     ["Éder Militão","CB","","2023","Base",86,50,70,72,85,82,0,0,0,0,0,0,85,86],
     ["Á. Di María","RW","","2023","Base",79,79,84,87,48,67,0,0,0,0,0,0,83,74],
@@ -427,7 +427,7 @@ let defaultDB = [
     ["S. Handanovič","GK","","2023","Base",0,0,0,0,0,55,80,80,65,85,44,90,79,36],
     ["Rafael Leão","LW","LM","2023","Base",91,77,73,86,27,74,0,0,0,0,0,0,83,77],
     ["R. Varane","CB","","2023","Base",81,49,64,66,85,80,0,0,0,0,0,0,82,67],
-    ["R. James","RWB","RB","2023","Base",81,70,82,82,80,82,0,0,0,0,0,0,81,83],
+    ["R. James","RB","","2023","Base",81,70,82,82,80,82,0,0,0,0,0,0,81,83],
     ["R. De Paul","CM","","2023","Base",78,77,83,82,75,81,0,0,0,0,0,0,81,91],
     ["Oyarzabal","LW","RW","2023","Base",80,83,81,84,41,62,0,0,0,0,0,0,80,79],
     ["Muniain","LM","CAM","2023","Base",81,77,82,87,51,61,0,0,0,0,0,0,81,77],
@@ -536,7 +536,7 @@ let defaultDB = [
     ["E. Cavani","ST","","2022","Base",66,86,70,76,51,79,0,0,0,0,0,0,90,81],
     ["David Silva","CAM","CM","2022","Base",63,74,87,87,52,53,0,0,0,0,0,0,85,66],
     ["Carvajal","RB","","2022","Base",80,54,78,80,81,80,0,0,0,0,0,0,83,89],
-    ["A. Hakimi","RB","RWB","2022","Base",95,71,78,83,76,78,0,0,0,0,0,0,84,91],
+    ["A. Hakimi","RB","","2022","Base",95,71,78,83,76,78,0,0,0,0,0,0,84,91],
     ["A. Gómez","CAM","CF,CM","2022","Base",87,78,84,87,39,55,0,0,0,0,0,0,86,75],
     ["A. Griezmann","ST","LW,RW","2022","Base",80,84,84,87,52,72,0,0,0,0,0,0,89,86],
     ["Z. Ibrahimović","ST","","2022","Base",65,87,78,79,34,77,0,0,0,0,0,0,83,52],
@@ -561,7 +561,7 @@ let defaultDB = [
     ["L. Shaw","LB","","2022","Base",79,54,79,80,81,80,0,0,0,0,0,0,82,80],
     ["L. Sané","RM","LM","2022","Base",90,81,79,85,38,68,0,0,0,0,0,0,79,68],
     ["L. Digne","LB","","2022","Base",79,69,80,80,80,76,0,0,0,0,0,0,83,86],
-    ["K. Trippier","RB","RWB,RM","2022","Base",73,63,82,77,80,72,0,0,0,0,0,0,81,87]
+    ["K. Trippier","RB","RM","2022","Base",73,63,82,77,80,72,0,0,0,0,0,0,81,87]
 ];
 // <<DB_DATA_END>>
 
@@ -572,65 +572,65 @@ let defaultDB = [
 const FORMATION_SLOTS = {
     '4-3-3': {
         name: '4-3-3',
-        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LCM', 'CDM', 'RCM', 'LW', 'ST', 'RW'],
+        roles: ['GK', 'LB', 'CB', 'CB', 'RB', 'LCM', 'CDM', 'RCM', 'LW', 'ST', 'RW'],
         redCoords: [
             { pos: 'GK', x: 0.06, y: 0.50 },
-            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'CB', x: 0.16, y: 0.38 }, { pos: 'CB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
             { pos: 'LCM', x: 0.30, y: 0.28 }, { pos: 'CDM', x: 0.25, y: 0.50 }, { pos: 'RCM', x: 0.30, y: 0.72 },
             { pos: 'LW', x: 0.44, y: 0.18 }, { pos: 'ST', x: 0.46, y: 0.50 }, { pos: 'RW', x: 0.44, y: 0.82 }
         ],
         blueCoords: [
             { pos: 'GK', x: 0.94, y: 0.50 },
-            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'CB', x: 0.84, y: 0.38 }, { pos: 'CB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
             { pos: 'RCM', x: 0.70, y: 0.28 }, { pos: 'CDM', x: 0.75, y: 0.50 }, { pos: 'LCM', x: 0.70, y: 0.72 },
             { pos: 'RW', x: 0.56, y: 0.18 }, { pos: 'ST', x: 0.54, y: 0.50 }, { pos: 'LW', x: 0.56, y: 0.82 }
         ]
     },
     '4-4-2': {
         name: '4-4-2',
-        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LM', 'LCM', 'RCM', 'RM', 'LST', 'RST'],
+        roles: ['GK', 'LB', 'CB', 'CB', 'RB', 'LM', 'LCM', 'RCM', 'RM', 'LST', 'RST'],
         redCoords: [
             { pos: 'GK', x: 0.06, y: 0.50 },
-            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'CB', x: 0.16, y: 0.38 }, { pos: 'CB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
             { pos: 'LM', x: 0.32, y: 0.15 }, { pos: 'LCM', x: 0.28, y: 0.38 }, { pos: 'RCM', x: 0.28, y: 0.62 }, { pos: 'RM', x: 0.32, y: 0.85 },
             { pos: 'LST', x: 0.45, y: 0.38 }, { pos: 'RST', x: 0.45, y: 0.62 }
         ],
         blueCoords: [
             { pos: 'GK', x: 0.94, y: 0.50 },
-            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'CB', x: 0.84, y: 0.38 }, { pos: 'CB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
             { pos: 'RM', x: 0.68, y: 0.15 }, { pos: 'RCM', x: 0.72, y: 0.38 }, { pos: 'LCM', x: 0.72, y: 0.62 }, { pos: 'LM', x: 0.68, y: 0.85 },
             { pos: 'RST', x: 0.55, y: 0.38 }, { pos: 'LST', x: 0.55, y: 0.62 }
         ]
     },
     '3-5-2': {
         name: '3-5-2',
-        roles: ['GK', 'LCB', 'CB', 'RCB', 'LWB', 'LCM', 'CDM', 'RCM', 'RWB', 'LST', 'RST'],
+        roles: ['GK', 'CB', 'CB', 'CB', 'LB', 'LCM', 'CDM', 'RCM', 'RB', 'LST', 'RST'],
         redCoords: [
             { pos: 'GK', x: 0.06, y: 0.50 },
-            { pos: 'LCB', x: 0.16, y: 0.28 }, { pos: 'CB', x: 0.15, y: 0.50 }, { pos: 'RCB', x: 0.16, y: 0.72 },
-            { pos: 'LWB', x: 0.30, y: 0.12 }, { pos: 'LCM', x: 0.28, y: 0.36 }, { pos: 'CDM', x: 0.24, y: 0.50 }, { pos: 'RCM', x: 0.28, y: 0.64 }, { pos: 'RWB', x: 0.30, y: 0.88 },
+            { pos: 'CB', x: 0.16, y: 0.28 }, { pos: 'CB', x: 0.15, y: 0.50 }, { pos: 'CB', x: 0.16, y: 0.72 },
+            { pos: 'LB', x: 0.30, y: 0.12 }, { pos: 'LCM', x: 0.28, y: 0.36 }, { pos: 'CDM', x: 0.24, y: 0.50 }, { pos: 'RCM', x: 0.28, y: 0.64 }, { pos: 'RB', x: 0.30, y: 0.88 },
             { pos: 'LST', x: 0.46, y: 0.40 }, { pos: 'RST', x: 0.46, y: 0.60 }
         ],
         blueCoords: [
             { pos: 'GK', x: 0.94, y: 0.50 },
-            { pos: 'RCB', x: 0.84, y: 0.28 }, { pos: 'CB', x: 0.85, y: 0.50 }, { pos: 'LCB', x: 0.84, y: 0.72 },
-            { pos: 'RWB', x: 0.70, y: 0.12 }, { pos: 'RCM', x: 0.72, y: 0.36 }, { pos: 'CDM', x: 0.76, y: 0.50 }, { pos: 'LCM', x: 0.72, y: 0.64 }, { pos: 'LWB', x: 0.70, y: 0.88 },
+            { pos: 'CB', x: 0.84, y: 0.28 }, { pos: 'CB', x: 0.85, y: 0.50 }, { pos: 'CB', x: 0.84, y: 0.72 },
+            { pos: 'RB', x: 0.70, y: 0.12 }, { pos: 'RCM', x: 0.72, y: 0.36 }, { pos: 'CDM', x: 0.76, y: 0.50 }, { pos: 'LCM', x: 0.72, y: 0.64 }, { pos: 'LB', x: 0.70, y: 0.88 },
             { pos: 'RST', x: 0.54, y: 0.40 }, { pos: 'LST', x: 0.54, y: 0.60 }
         ]
     },
     '4-2-3-1': {
         name: '4-2-3-1',
-        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LDM', 'RDM', 'LAM', 'CAM', 'RAM', 'ST'],
+        roles: ['GK', 'LB', 'CB', 'CB', 'RB', 'LDM', 'RDM', 'LAM', 'CAM', 'RAM', 'ST'],
         redCoords: [
             { pos: 'GK', x: 0.06, y: 0.50 },
-            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'CB', x: 0.16, y: 0.38 }, { pos: 'CB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
             { pos: 'LDM', x: 0.27, y: 0.38 }, { pos: 'RDM', x: 0.27, y: 0.62 },
             { pos: 'LAM', x: 0.38, y: 0.20 }, { pos: 'CAM', x: 0.36, y: 0.50 }, { pos: 'RAM', x: 0.38, y: 0.80 },
             { pos: 'ST', x: 0.47, y: 0.50 }
         ],
         blueCoords: [
             { pos: 'GK', x: 0.94, y: 0.50 },
-            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'CB', x: 0.84, y: 0.38 }, { pos: 'CB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
             { pos: 'RDM', x: 0.73, y: 0.38 }, { pos: 'LDM', x: 0.73, y: 0.62 },
             { pos: 'RAM', x: 0.62, y: 0.20 }, { pos: 'CAM', x: 0.64, y: 0.50 }, { pos: 'LAM', x: 0.62, y: 0.80 },
             { pos: 'ST', x: 0.53, y: 0.50 }
@@ -861,6 +861,13 @@ function aiPickCurrentTurn() {
     turnPickPlayer(best.id, false);
 }
 
+function autoDraftAI(team) {
+    while ((team === 'red' ? rosterRed : rosterBlue).length < 11) {
+        draftTurn = team;
+        aiPickCurrentTurn();
+    }
+}
+
 // ================= OVR & STATS =================
 function calcOVR(p) {
     if (!p) return 0;
@@ -890,7 +897,7 @@ const POS_COORD = {
     LW: [5.2, -1], RW: [5.2, 1], CF: [5.6, 0], ST: [6.0, 0]
 };
 // Slot trái/phải của vị trí trung tâm quy về vị trí gốc
-const POS_CANON = { LCB: 'CB', RCB: 'CB', LST: 'ST', RST: 'ST', LDM: 'CDM', RDM: 'CDM', LCM: 'CM', RCM: 'CM' };
+const POS_CANON = { LCB: 'CB', RCB: 'CB', LWB: 'LB', RWB: 'RB', LST: 'ST', RST: 'ST', LDM: 'CDM', RDM: 'CDM', LCM: 'CM', RCM: 'CM' };
 const FIT_CFG = {
     depthWeight: 12,      // mỗi 1 bậc độ sâu = 12 điểm phạt
     widthWeight: 8,       // mỗi 1 bậc bên cánh (trái<->giữa) = 8 điểm phạt
@@ -922,8 +929,8 @@ function checkPositionFit(player, slotRole) {
     let main = canonPos(player.pos);
     let alts = (player.altPos || []).map(canonPos);
 
-    if (main === slot) return { fit: 'exact', text: 'Chính', class: 'status-exact', penalty: 0, mult: 1 };
-    if (alts.includes(slot)) return { fit: 'alt', text: 'Phụ', class: 'status-alt', penalty: 0, mult: 1 };
+    if (main === slot) return { fit: 'exact', exact: true, text: 'Chính', class: 'status-exact', penalty: 0, mult: 1 };
+    if (alts.includes(slot)) return { fit: 'alt', exact: false, text: 'Phụ', class: 'status-alt', penalty: 0, mult: 1 };
 
     if ((slot === 'GK') !== (main === 'GK')) {
         return { fit: 'oop', text: `Sai hẳn (-${Math.round((1 - positionMultiplier(FIT_CFG.gkMismatch)) * 100)}%)`, class: 'status-oop', penalty: FIT_CFG.gkMismatch, mult: positionMultiplier(FIT_CFG.gkMismatch) };
@@ -1003,6 +1010,8 @@ function autoArrangeClick(team) {
     autoArrange(team);
     renderDrafts();
 }
+
+const reassignSlotsForFormation = autoArrange;
 
 function changeFormation(team) {
     autoArrange(team); // đổi sơ đồ -> xếp lại người cho hợp vị trí mới
@@ -1167,6 +1176,15 @@ function draftToTeam(id, team, isSub) {
     if (i < 0) return;
     let p = pool.splice(i, 1)[0];
 
+    // Tạm cất các bản khác năm của cầu thủ này khỏi kho để tránh trùng lặp
+    let sameNameOthers = [];
+    for (let j = pool.length - 1; j >= 0; j--) {
+        if (pool[j].key === p.key && pool[j].id !== p.id) {
+            sameNameOthers.push(pool.splice(j, 1)[0]);
+        }
+    }
+    p.stashedVersions = sameNameOthers;
+
     if (isSub) {
         (team === 'red' ? subsRed : subsBlue).push(p);
     } else {
@@ -1213,10 +1231,14 @@ function assignPlayerToSlot(team, slotIdx, playerId) {
 }
 
 function undraftPlayer(id, team, isSub) {
+    let removedPlayer = null;
     if (isSub) {
         let arr = team === 'red' ? subsRed : subsBlue;
         let i = arr.findIndex(p => p.id === id);
-        if (i >= 0) pool.push(arr.splice(i, 1)[0]);
+        if (i >= 0) {
+            removedPlayer = arr.splice(i, 1)[0];
+            pool.push(removedPlayer);
+        }
     } else {
         let roster = team === 'red' ? rosterRed : rosterBlue;
         let slots = team === 'red' ? slotsRed : slotsBlue;
@@ -1227,7 +1249,15 @@ function undraftPlayer(id, team, isSub) {
 
         // Remove from roster
         let rIdx = roster.findIndex(p => p.id === id);
-        if (rIdx >= 0) pool.push(roster.splice(rIdx, 1)[0]);
+        if (rIdx >= 0) {
+            removedPlayer = roster.splice(rIdx, 1)[0];
+            pool.push(removedPlayer);
+        }
+    }
+    // Trả lại các bản khác năm đã cất về lại pool
+    if (removedPlayer && removedPlayer.stashedVersions && removedPlayer.stashedVersions.length) {
+        pool.push(...removedPlayer.stashedVersions);
+        removedPlayer.stashedVersions = [];
     }
     renderDrafts();
 }
@@ -1391,12 +1421,12 @@ function drawPitch(time = 0) {
 // ================= MATCH ENGINE & REALISTIC GOAL TUNING =================
 // ================= TUNING (cân bằng số bàn thắng) =================
 const TUNING = {
-    gk1v1: 2.4,           // thủ môn trong tình huống 1v1 (hệ số nhân vào chỉ số thủ môn)
-    gkThrough: 2.5,       // sút sau đường chọc khe
+    gk1v1: 2.2,           // thủ môn trong tình huống 1v1 (hệ số nhân vào chỉ số thủ môn)
+    gkThrough: 2.3,       // sút sau đường chọc khe
     gkHeader: 2.6,        // đánh đầu sau tạt
     gkLong: 2.1,          // sút xa
-    offTarget1v1: 0.40,   // tỉ lệ sút chệch khi đối mặt
-    offTargetThrough: 0.45,
+    offTarget1v1: 0.35,   // tỉ lệ sút chệch khi đối mặt
+    offTargetThrough: 0.40,
     longBlocked: 0.35,    // sút xa bị hậu vệ chặn
     offTargetLong: 0.45,
     offTargetHeader: 0.50
@@ -1412,7 +1442,9 @@ function getFatigue(stamina) {
 
 function resolve(a, b) {
     if (a + b <= 0) return Math.random() < 0.5;
-    return (Math.random() * 100) <= (a / (a + b) * 100);
+    let pa = Math.pow(Math.max(0.1, a), 1.25);
+    let pb = Math.pow(Math.max(0.1, b), 1.25);
+    return (Math.random() * 100) <= (pa / (pa + pb) * 100);
 }
 
 // Position Stamina multiplier (CB less, Wingers/Fullbacks more)
@@ -1584,7 +1616,18 @@ function simulateMinute() {
     // 2. Action Event (Realistic Goal Frequency)
     // Lệch quân số: mỗi người hơn = +MAN_ADVANTAGE xác suất giành quyền tấn công
     let nRed = slotsRed.filter(Boolean).length, nBlue = slotsBlue.filter(Boolean).length;
-    let pRedAtk = Math.max(0.2, Math.min(0.8, 0.5 + MAN_ADVANTAGE * (nRed - nBlue)));
+    let sumOvrR = 0, sumOvrB = 0;
+    for (let i = 0; i < slotsRed.length; i++) {
+        let p = slotsRed[i];
+        if (p) sumOvrR += calcOVR(p) * (checkPositionFit(p, rRoles[i]) ? checkPositionFit(p, rRoles[i]).mult : 1);
+    }
+    for (let i = 0; i < slotsBlue.length; i++) {
+        let p = slotsBlue[i];
+        if (p) sumOvrB += calcOVR(p) * (checkPositionFit(p, bRoles[i]) ? checkPositionFit(p, bRoles[i]).mult : 1);
+    }
+    let ovrR = sumOvrR / Math.max(1, nRed);
+    let ovrB = sumOvrB / Math.max(1, nBlue);
+    let pRedAtk = Math.max(0.15, Math.min(0.85, 0.5 + MAN_ADVANTAGE * (nRed - nBlue) + (ovrR - ovrB) * 0.015));
     let isRedAtk = Math.random() < pRedAtk;
     pitchAttackShift = isRedAtk ? 1 : -1;
 

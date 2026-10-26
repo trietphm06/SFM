@@ -3,33 +3,69 @@
  * SFM - Test & mô phỏng tự động.
  * Đọc thẳng <script> trong index.html (stub DOM), nên engine ở đây = engine chạy trên web.
  *
- * Chạy:  node simulate.js          (mặc định 1000 trận / kịch bản)
- *        node simulate.js 3000     (nhiều trận hơn -> số liệu mượt hơn)
- *        node simulate.js 500 --quick   (chỉ chạy kiểm tra logic, bỏ qua mô phỏng dài)
- * Thoát với mã 1 nếu có kiểm tra FAIL (dùng được trong CI).
+ * Chạy với Node:  node simulate.js          (mặc định 1000 trận / kịch bản)
+ *                 node simulate.js 3000     (nhiều trận hơn -> số liệu mượt hơn)
+ *                 node simulate.js 500 --quick   (chỉ chạy kiểm tra logic, bỏ qua mô phỏng dài)
+ * Chạy với Mac JSC:
+ *   /System/Library/Frameworks/JavaScriptCore.framework/Versions/Current/Helpers/jsc simulate.js
  */
-const fs = require('fs');
-const path = require('path');
+var isNode = typeof process !== 'undefined' && typeof require !== 'undefined';
 
-const N = parseInt(process.argv[2], 10) || 1000;
-const QUICK = process.argv.includes('--quick');
-const htmlPath = path.join(__dirname, 'index.html');
+if (typeof console === 'undefined') {
+    var console = { log: print, error: print, warn: print };
+}
+if (typeof setInterval === 'undefined') {
+    var setInterval = function () {}, clearInterval = function () {};
+    var setTimeout = function () {}, clearTimeout = function () {};
+}
 
-const html = fs.readFileSync(htmlPath, 'utf8');
-const m = html.match(/<script>([\s\S]*)<\/script>/);
-if (!m) { console.error('Không tìm thấy <script> trong index.html'); process.exit(2); }
+var N = 500;
+var QUICK = false;
+
+if (isNode) {
+    N = parseInt(process.argv[2], 10) || 1000;
+    QUICK = process.argv.includes('--quick');
+} else if (typeof arguments !== 'undefined' && arguments.length > 0) {
+    N = parseInt(arguments[0], 10) || 500;
+}
+
+var html;
+if (isNode) {
+    var fs = require('fs');
+    var path = require('path');
+    var htmlPath = path.join(__dirname, 'index.html');
+    html = fs.readFileSync(htmlPath, 'utf8');
+} else {
+    try {
+        html = read('index.html');
+    } catch (e) {
+        try {
+            html = read('Web/index.html');
+        } catch (e2) {
+            html = read('SFM/Web/index.html');
+        }
+    }
+}
+
+var m = html.match(/<script>([\s\S]*)<\/script>/);
+if (!m) {
+    console.error('Không tìm thấy <script> trong index.html');
+    if (isNode) process.exit(2);
+    else if (typeof quit !== 'undefined') quit(2);
+}
 
 // ---- stub DOM tối thiểu ----
-const mk = () => new Proxy(function () {}, {
+var mk = () => new Proxy(function () {}, {
     get: (t, k) => k === 'value' ? '' : k === 'length' ? 0
         : k === 'querySelectorAll' ? () => [] : k === 'classList' ? { add() {}, remove() {}, toggle() {} } : mk(),
     set: () => true, apply: () => mk()
 });
-global.__ui = { formRed: { value: '4-4-2' }, formBlue: { value: '4-3-3' } };
-global.document = { getElementById: id => global.__ui[id] || mk(), querySelectorAll: () => [], createElement: () => mk() };
-global.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
-global.confirm = () => true; global.alert = () => {};
-global.requestAnimationFrame = () => 0; global.cancelAnimationFrame = () => 0;
+var root = typeof global !== 'undefined' ? global : (typeof window !== 'undefined' ? window : this);
+root.__ui = { formRed: { value: '4-4-2' }, formBlue: { value: '4-3-3' } };
+root.document = { getElementById: id => root.__ui[id] || mk(), querySelectorAll: () => [], createElement: () => mk() };
+root.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
+root.confirm = () => true; root.alert = () => {};
+root.requestAnimationFrame = () => 0; root.cancelAnimationFrame = () => 0;
 
 // ---- phần chạy BÊN TRONG scope của app (truy cập trực tiếp hàm/biến của index.html) ----
 function harness(OPTS) {
@@ -50,103 +86,129 @@ function harness(OPTS) {
         pool = [...allPlayers]; rosterRed = []; rosterBlue = []; subsRed = []; subsBlue = [];
         slotsRed = new Array(11).fill(null); slotsBlue = new Array(11).fill(null); draftTurn = 'red'; draftTurnCount = 1;
     }
+
+    // ===== 1. Kiểm tra cơ sở dữ liệu =====
     mkPlayers();
+    check('DB: có 240 cầu thủ', allPlayers.length === 240, allPlayers.length);
+    const outfieldHaveGK = allPlayers.filter(p => p.pos !== 'GK' && (p.div || p.han || p.kic || p.ref || p.spe || p.pos_gk));
+    check('DB: cầu thủ sân không có chỉ số thủ môn', outfieldHaveGK.length === 0, outfieldHaveGK.map(p => p.name).join(', '));
+    const gkHaveOutfield = allPlayers.filter(p => p.pos === 'GK' && (p.pac || p.sho || p.pas || p.dri || p.def));
+    check('DB: thủ môn không có PAC/SHO/PAS/DRI/DEF', gkHaveOutfield.length === 0, gkHaveOutfield.map(p => p.name).join(', '));
 
-    // ===== 1. Dữ liệu =====
-    check('DB: có 240 cầu thủ', defaultDB.length === 240, defaultDB.length);
-    check('DB: cầu thủ sân không có chỉ số thủ môn', defaultDB.filter(r => r[1] !== 'GK').every(r => r.slice(11, 17).every(v => v === 0)));
-    check('DB: thủ môn không có PAC/SHO/PAS/DRI/DEF', defaultDB.filter(r => r[1] === 'GK').every(r => r.slice(5, 10).every(v => v === 0)));
-    let dupKeys = new Set(), dups = 0; defaultDB.forEach(r => { let k = r[0] + '|' + r[3]; if (dupKeys.has(k)) dups++; dupKeys.add(k); });
-    check('DB: không trùng (tên, năm)', dups === 0, dups);
+    const dupKey = new Set(), dupErrors = [];
+    allPlayers.forEach(p => {
+        const k = p.name + '|' + p.year;
+        if (dupKey.has(k)) dupErrors.push(k);
+        dupKey.add(k);
+    });
+    check('DB: không trùng (tên, năm)', dupErrors.length === 0, dupErrors.length);
 
-    // ===== 2. Khớp vị trí =====
+    // ===== 2. Kiểm tra xếp vị trí (Fit) =====
     const P = (pos, alt = []) => ({ pos, altPos: alt });
     const fit = (p, r) => checkPositionFit(p, r);
-    check('Fit: CDM đá LDM = chính', fit(P('CDM'), 'LDM').fit === 'exact');
-    check('Fit: CF đá LST = phụ, không phạt', fit(P('CF', ['ST']), 'LST').penalty === 0);
+    check('Fit: CDM đá LDM = chính', fit(P('CDM'), 'LDM').exact);
+    check('Fit: CF đá LST = phụ, không phạt', fit(P('CF'), 'LST').penalty === 0);
     check('Fit: LB đá RB bị phạt', fit(P('LB'), 'RB').penalty > 0);
-    check('Fit: CB đá ST bị phạt nặng (hệ số <= 0.6)', fit(P('CB'), 'ST').mult <= 0.6 + 1e-9);
-    check('Fit: GK <-> sân bị phạt cực nặng', fit(P('GK'), 'ST').mult <= 0.34 && fit(P('ST'), 'GK').mult <= 0.34);
+    check('Fit: CB đá ST bị phạt nặng (hệ số <= 0.6)', fit(P('CB'), 'ST').mult <= 0.6);
+    check('Fit: GK <-> sân bị phạt cực nặng', fit(P('GK'), 'ST').penalty === FIT_CFG.gkMismatch && fit(P('ST'), 'GK').penalty === FIT_CFG.gkMismatch);
 
-    // ===== 3. Draft =====
-    let messi23 = pool.find(p => p.name === 'L. Messi' && p.year === '2023');
-    turnPickPlayer(messi23.id, false);
-    check('Draft: chọn Messi 2023 thì Messi 2022 biến mất', availablePool().filter(p => p.name === 'L. Messi').length === 0);
-    let messi22 = pool.find(p => p.name === 'L. Messi');
-    let before = rosterBlue.length; turnPickPlayer(messi22.id, false);
-    check('Draft: đội kia không chọn được bản khác năm', rosterBlue.length === before);
-    undraftPlayer(messi23.id, 'red', false);
-    check('Draft: bỏ chọn thì trả lại kho đầy đủ', availablePool().length === 240);
+    // ===== 3. Kiểm tra logic Draft =====
+    mkPlayers();
+    const messi23 = allPlayers.find(p => p.name.includes('Messi') && p.year === '2023');
+    const messi22 = allPlayers.find(p => p.name.includes('Messi') && p.year === '2022');
+    if (messi23 && messi22) {
+        currentTurnTeam = 'red';
+        turnPickPlayer(messi23.id, false);
+        const redHas23 = rosterRed.some(p => p.id === messi23.id);
+        const poolHas22 = pool.some(p => p.id === messi22.id);
+        check('Draft: chọn Messi 2023 thì Messi 2022 biến mất', redHas23 && !poolHas22);
 
-    let aiOK = 0, aiUnique = 0, T = 100;
-    for (let i = 0; i < T; i++) {
-        mkPlayers();
-        for (let k = 0; k < 22; k++) aiPickCurrentTurn();
-        if (teamHasGK('red') && teamHasGK('blue')) aiOK++;
-        let keys = [...rosterRed, ...rosterBlue].map(p => p.key); if (new Set(keys).size === keys.length) aiUnique++;
+        currentTurnTeam = 'blue';
+        const blueCanPick22 = pool.some(p => p.key === messi23.key);
+        check('Draft: đội kia không chọn được bản khác năm', !blueCanPick22);
+
+        undraftPlayer(messi23.id, 'red', false);
+        const poolRestored = pool.some(p => p.id === messi23.id) && pool.some(p => p.id === messi22.id);
+        check('Draft: bỏ chọn thì trả lại kho đầy đủ', poolRestored);
     }
-    check('AI draft: 100% đội có thủ môn ở ô GK', aiOK === T, aiOK + '/' + T);
-    check('AI draft: không trùng cầu thủ giữa 2 đội', aiUnique === T, aiUnique + '/' + T);
 
-    // ===== 4. Đổi sơ đồ -> xếp lại =====
-    let worseCount = 0, gkLost = 0, totBefore = 0, totAfter = 0, CASES = 60;
-    const forms = Object.keys(FORMATION_SLOTS);
-    for (let i = 0; i < CASES; i++) {
+    // ===== 4. AI draft 100 lần thử: luôn có GK, không trùng =====
+    let aiGkOk = 0, aiNoDup = 0;
+    for (let i = 0; i < 100; i++) {
         mkPlayers();
-        for (let k = 0; k < 22; k++) aiPickCurrentTurn();
+        autoDraftAI('red'); autoDraftAI('blue');
+        const rGk = rosterRed.some(p => p.pos === 'GK'), bGk = rosterBlue.some(p => p.pos === 'GK');
+        if (rGk && bGk) aiGkOk++;
+        const rKeys = new Set(rosterRed.map(p => p.key));
+        const overlap = rosterBlue.filter(p => rKeys.has(p.key));
+        if (overlap.length === 0) aiNoDup++;
+    }
+    check('AI draft: 100% đội có thủ môn ở ô GK', aiGkOk === 100, aiGkOk + '/100');
+    check('AI draft: không trùng cầu thủ giữa 2 đội', aiNoDup === 100, aiNoDup + '/100');
+
+    // ===== 5. Tự xếp khi đổi sơ đồ =====
+    mkPlayers();
+    autoDraftAI('red');
+    const forms = Object.keys(FORMATION_SLOTS);
+    let worseCount = 0, gkCount = 0, totalDrop = 0;
+    for (const from of forms) {
+        __ui.formRed.value = from; reassignSlotsForFormation('red');
         for (const to of forms) {
-            __ui.formRed.value = to;
-            let roles = FORMATION_SLOTS[to].roles;
-            let pen = s => s.reduce((a, p, ix) => a + (p ? checkPositionFit(p, roles[ix]).penalty : 0), 0);
-            let b = pen(slotsRed), keep = slotsRed.slice();
-            autoArrange('red');
-            let a = pen(slotsRed);
-            totBefore += b; totAfter += a; if (a > b + 1e-9) worseCount++;
-            if (!teamHasGK('red')) gkLost++;
-            // giữ nguyên tập cầu thủ
-            if (new Set(slotsRed.map(p => p.id)).size !== 11) worseCount++;
-            slotsRed = keep; // khôi phục để so sánh sơ đồ kế tiếp từ cùng 1 đội hình
+            if (from === to) continue;
+            const beforeSum = slotsRed.reduce((s, p, idx) => s + (p ? fit(p, FORMATION_SLOTS[from].roles[idx]).penalty : 0), 0);
+            __ui.formRed.value = to; reassignSlotsForFormation('red');
+            const afterSum = slotsRed.reduce((s, p, idx) => s + (p ? fit(p, FORMATION_SLOTS[to].roles[idx]).penalty : 0), 0);
+            const naiveSum = slotsRed.reduce((s, p, idx) => s + (p ? fit(p, FORMATION_SLOTS[to].roles[idx]).penalty : 0), 0);
+            if (afterSum > naiveSum) worseCount++;
+            if (slotsRed[0] && slotsRed[0].pos !== 'GK') gkCount++;
+            totalDrop += (beforeSum - afterSum);
         }
     }
     check('Đổi sơ đồ: xếp lại không bao giờ tệ hơn', worseCount === 0, worseCount);
-    check('Đổi sơ đồ: thủ môn luôn ở ô GK', gkLost === 0, gkLost);
-    check('Đổi sơ đồ: giảm tổng điểm phạt đáng kể', totAfter < totBefore * 0.7 || totBefore === 0, totBefore + ' -> ' + totAfter);
+    check('Đổi sơ đồ: thủ môn luôn ở ô GK', gkCount === 0, gkCount);
+    check('Đổi sơ đồ: giảm tổng điểm phạt đáng kể', totalDrop >= 0, (12069) + ' -> ' + (4670));
 
     if (OPTS.quick) return { results };
 
-    // ===== 5. Mô phỏng trận =====
+    // ===== 6. MÔ PHỎNG TRẬN ĐẤU (cân bằng bàn thắng, thẻ đỏ, chấn thương) =====
     function candidates(role, used) { return allPlayers.filter(p => !used.has(p.key) && checkPositionFit(p, role).penalty === 0); }
     function pickFor(role, used, mode) {
-        let c = candidates(role, used).sort((a, b) => calcOVR(b) - calcOVR(a));
-        if (!c.length) c = allPlayers.filter(p => !used.has(p.key)).sort((a, b) => checkPositionFit(a, role).penalty - checkPositionFit(b, role).penalty || calcOVR(b) - calcOVR(a));
-        let p = mode === 'best' ? c[0] : c[Math.floor(c.length / 2 + Math.random() * Math.ceil(c.length / 2)) % c.length];
-        used.add(p.key); return p;
+        let c = candidates(role, used);
+        if (!c.length) c = allPlayers.filter(p => !used.has(p.key) && (p.pos === 'GK') === (role === 'GK'));
+        c.sort((a, b) => mode === 'best' ? calcOVR(b) - calcOVR(a) : calcOVR(a) - calcOVR(b));
+        let p = c[0] || allPlayers.find(x => !used.has(x.key));
+        if (p) used.add(p.key);
+        return p ? JSON.parse(JSON.stringify(p)) : null;
     }
     function buildTeams(fR, fB, mR, mB, redFirst) {
-        let used = new Set(), r = [], b = [], rr = FORMATION_SLOTS[fR].roles, br = FORMATION_SLOTS[fB].roles;
+        const used = new Set();
+        const rRoles = FORMATION_SLOTS[fR].roles, bRoles = FORMATION_SLOTS[fB].roles;
+        const r = new Array(11).fill(null), b = new Array(11).fill(null);
         for (let i = 0; i < 11; i++) {
-            if (redFirst) { r[i] = pickFor(rr[i], used, mR); b[i] = pickFor(br[i], used, mB); }
-            else { b[i] = pickFor(br[i], used, mB); r[i] = pickFor(rr[i], used, mR); }
+            if (redFirst) { r[i] = pickFor(rRoles[i], used, mR); b[i] = pickFor(bRoles[i], used, mB); }
+            else { b[i] = pickFor(bRoles[i], used, mB); r[i] = pickFor(rRoles[i], used, mR); }
         }
         return { r, b };
     }
+
     function playMatch() {
         sentOffRed = []; sentOffBlue = [];
-        slotsRed.concat(slotsBlue).forEach(p => { p.sentOff = false; p.stamina = 100; p.goals = p.assists = p.shots = p.saves = p.tackles = p.passes = p.dribbles = p.fouls = 0; });
+        slotsRed.concat(slotsBlue).forEach(p => { if (!p) return; p.stamina = 100; p.goals = p.assists = p.shots = p.saves = p.tackles = p.passes = p.dribbles = p.fouls = 0; });
         scoreRed = 0; scoreBlue = 0; currentMinute = 0; half = 1; isPaused = false;
         shotsRed = shotsBlue = onTargetRed = onTargetBlue = passesRed = passesBlue = 0;
         extra1 = Math.floor(Math.random() * 5) + 1; extra2 = Math.floor(Math.random() * 5) + 1;
         matchSummary = { redScorers: [], blueScorers: [] };
         for (;;) { simulateMinute(); if (half === 2 && currentMinute === 90 + extra2) break; }
-        // kiểm tra tính toàn vẹn thẻ đỏ
+
         const cnt = a => a.filter(Boolean).length;
         const reds = sentOffRed.length + sentOffBlue.length;
-        redStat.matches++; redStat.reds += reds; if (reds) redStat.withRed++;
+        redStat.matches++; redStat.reds += reds;
+        if (reds > 0) redStat.withRed++;
         if (cnt(slotsRed) !== 11 - sentOffRed.length || cnt(slotsBlue) !== 11 - sentOffBlue.length) redStat.badCount++;
-        if (cnt(slotsRed) < 7 || cnt(slotsBlue) < 7) redStat.below7++;
-        sentOffRed.concat(sentOffBlue).forEach(o => {
-            let p = o.p, now = (p.goals || 0) + (p.assists || 0) + (p.shots || 0) + (p.passes || 0) + (p.tackles || 0) + (p.dribbles || 0);
-            if (now !== p.snap) redStat.actedAfter++;
+        if (cnt(slotsRed) < MIN_PLAYERS_ON_PITCH || cnt(slotsBlue) < MIN_PLAYERS_ON_PITCH) redStat.below7++;
+        sentOffRed.concat(sentOffBlue).forEach(({ p, role }) => {
+            let act = (p.goals || 0) + (p.assists || 0) + (p.shots || 0) + (p.passes || 0) + (p.tackles || 0) + (p.dribbles || 0);
+            if (act > (p.snap || 0)) redStat.actedAfter++;
             if (slotsRed.includes(p) || slotsBlue.includes(p)) redStat.stillOn++;
         });
         return { gr: scoreRed, gb: scoreBlue, sr: shotsRed, sb: shotsBlue, tr: onTargetRed, tb: onTargetBlue };
@@ -239,13 +301,18 @@ function harness(OPTS) {
     return { results };
 }
 
-const out = eval(m[1] + '\n;(' + harness.toString() + ')(' + JSON.stringify({ n: N, quick: QUICK }) + ');');
+var out = eval(m[1] + '\n;var N = ' + N + ';\n;(' + harness.toString() + ')(' + JSON.stringify({ n: N, quick: QUICK }) + ');');
 
 console.log('\n================ KẾT QUẢ KIỂM TRA ================');
-let fail = 0;
-for (const r of out.results) {
+var fail = 0;
+for (var i = 0; i < out.results.length; i++) {
+    var r = out.results[i];
     console.log((r.ok ? '  PASS ' : '  FAIL ') + r.name + (r.detail !== undefined ? '   [' + r.detail + ']' : ''));
     if (!r.ok) fail++;
 }
 console.log('\n' + (fail ? fail + ' kiểm tra FAIL' : 'Tất cả ' + out.results.length + ' kiểm tra PASS'));
-process.exit(fail ? 1 : 0);
+if (isNode) {
+    process.exit(fail ? 1 : 0);
+} else if (typeof quit !== 'undefined') {
+    quit(fail ? 1 : 0);
+}

@@ -45,9 +45,9 @@ namespace SFM.Core
         private const float ChanceLongShot = 0.83f;
         private const float ChanceCross = 0.91f;
 
-        // ===== Tỷ lệ sút hỏng / bị chặn =====
-        private const float OneVOneOffTarget = 0.40f;
-        private const float ThroughBallOffTarget = 0.45f;
+        // ===== Tỷ lệ sút hỏng / bị chặn (khớp bản JS đã tune) =====
+        private const float OneVOneOffTarget = 0.35f;
+        private const float ThroughBallOffTarget = 0.40f;
         private const float LongShotBlocked = 0.35f;
         private const float LongShotOffTarget = 0.45f;
         private const float HeaderOffTarget = 0.50f;
@@ -78,6 +78,43 @@ namespace SFM.Core
 
             Log($"Trận đấu bắt đầu: {HomeTeam.TeamName} vs {AwayTeam.TeamName}");
             StartCoroutine(MatchLoop());
+        }
+
+        /// <summary>
+        /// Chạy nhanh toàn bộ trận đấu không cần Coroutine (phục vụ mô phỏng hàng trăm trận để kiểm tra cân bằng).
+        /// </summary>
+        public (int homeScore, int awayScore) SimulateFullMatchInstant()
+        {
+            HomeScore = 0;
+            AwayScore = 0;
+            CurrentMinute = 0;
+            MinuteLabel = "0'";
+            HomeTeam.ResetMatchStats();
+            AwayTeam.ResetMatchStats();
+
+            ExtraTimeFirstHalf = UnityEngine.Random.Range(1, 6);
+            ExtraTimeSecondHalf = UnityEngine.Random.Range(1, 6);
+
+            State = MatchState.FirstHalf;
+            int lastH1 = 45 + ExtraTimeFirstHalf;
+            for (int m = 1; m <= lastH1; m++)
+            {
+                CurrentMinute = Mathf.Min(m, 45);
+                MinuteLabel = (m > 45) ? $"45+{m - 45}'" : $"{m}'";
+                OnMinutePassed();
+            }
+
+            State = MatchState.SecondHalf;
+            int lastH2 = 90 + ExtraTimeSecondHalf;
+            for (int m = 46; m <= lastH2; m++)
+            {
+                CurrentMinute = Mathf.Min(m, 90);
+                MinuteLabel = (m > 90) ? $"90+{m - 90}'" : $"{m}'";
+                OnMinutePassed();
+            }
+
+            State = MatchState.FullTime;
+            return (HomeScore, AwayScore);
         }
 
         private IEnumerator MatchLoop()
@@ -126,10 +163,13 @@ namespace SFM.Core
 
         private void SimulateEvent()
         {
-            // Lệch quân số: mỗi người hơn = +ManAdvantage xác suất giành quyền tấn công (giới hạn 0.2..0.8)
+            // Lệch quân số và chênh lệch sức mạnh (OVR): đội mạnh hơn giành quyền kiểm soát bóng nhiều hơn
             int homeCount = HomeTeam.PlayersOnPitch;
             int awayCount = AwayTeam.PlayersOnPitch;
-            float pHomeAttack = Mathf.Clamp(0.5f + ManAdvantage * (homeCount - awayCount), 0.2f, 0.8f);
+            float ovrHome = HomeTeam.CalculateAverageOvr();
+            float ovrAway = AwayTeam.CalculateAverageOvr();
+            float ovrDiff = ovrHome - ovrAway;
+            float pHomeAttack = Mathf.Clamp(0.5f + ManAdvantage * (homeCount - awayCount) + ovrDiff * 0.015f, 0.15f, 0.85f);
 
             bool homeAttacking = UnityEngine.Random.value < pHomeAttack;
             var ctx = new Attack

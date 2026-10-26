@@ -49,6 +49,27 @@ namespace SFM.Core
             }
         }
 
+        /// <summary>Điểm OVR trung bình thực tế của 11 người trên sân (có tính hệ số phạt vị trí).</summary>
+        public float CalculateAverageOvr()
+        {
+            float total = 0f;
+            int count = 0;
+            if (Goalkeeper != null)
+            {
+                total += Goalkeeper.CalculateOVR();
+                count++;
+            }
+            foreach (var slot in OutfieldSlots)
+            {
+                if (slot.Player != null)
+                {
+                    total += slot.Player.CalculateOVR() * slot.Player.PositionMultiplier;
+                    count++;
+                }
+            }
+            return count > 0 ? total / count : 0f;
+        }
+
         public void SetupFormation(FormationData formationData, List<OutfieldPlayer> selectedPlayers)
         {
             OutfieldSlots.Clear();
