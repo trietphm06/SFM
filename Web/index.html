@@ -1,0 +1,2038 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SFM - Simple Football Manager (2D Top-Down Simulator)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: #e2e8f0; color: #2d3748; margin: 0; padding: 15px; }
+        .container { max-width: 1240px; margin: 0 auto; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c5282; margin-top: 0; margin-bottom: 4px; }
+        .subtitle { text-align: center; color: #718096; font-size: 13px; margin-bottom: 15px; }
+        
+        .tabs { display: flex; gap: 8px; margin-bottom: 15px; border-bottom: 2px solid #cbd5e0; padding-bottom: 10px; }
+        .tab-btn { background: #edf2f7; border: 1px solid #cbd5e0; padding: 9px 18px; font-weight: bold; cursor: pointer; border-radius: 6px; font-size: 14px; transition: 0.2s; }
+        .tab-btn.active { background: #3182ce; color: white; border-color: #2b6cb0; }
+        .tab-btn.locked { background: #edf2f7; color: #a0aec0; cursor: not-allowed; border-color: #e2e8f0; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* DB Table */
+        .table-container { overflow-x: auto; max-height: 480px; border: 1px solid #cbd5e0; border-radius: 6px; }
+        table.db-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        table.db-table th, table.db-table td { border: 1px solid #cbd5e0; padding: 5px 3px; }
+        table.db-table th { background-color: #2c5282; color: white; position: sticky; top: 0; z-index: 2; font-size: 11px; }
+        input.cell { width: 100%; border: none; text-align: center; font-family: inherit; font-size: 12px; padding: 3px 0; background: transparent; box-sizing: border-box; }
+        input.cell:focus { outline: 2px solid #4299e1; background: #ebf8ff; }
+        .col-name { text-align: left; padding-left: 5px !important; }
+        .th-info { background-color: #2c5282 !important; }
+        .th-outfield { background-color: #2b6cb0 !important; }
+        .th-gk { background-color: #553c9a !important; }
+        .th-extra { background-color: #285e61 !important; }
+        
+        /* Tactics & Lineup */
+        .tactics-bar { display: flex; justify-content: space-between; align-items: center; background: #edf2f7; padding: 10px 15px; border-radius: 8px; margin-bottom: 12px; border: 1px solid #cbd5e0; }
+        .tactics-select { display: flex; align-items: center; gap: 8px; font-weight: bold; font-size: 13px; }
+        select.formation-dropdown { padding: 5px 10px; border-radius: 4px; border: 1px solid #a0aec0; font-weight: bold; }
+        
+        .draft-container { display: flex; gap: 15px; }
+        .draft-col { flex: 1.1; background: #f7fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px; min-height: 450px; display: flex; flex-direction: column; }
+        .draft-list { max-height: 480px; overflow-y: auto; flex: 1; }
+        .player-card { background: white; border: 1px solid #cbd5e0; padding: 6px 8px; margin-bottom: 5px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+        .player-info { display: flex; flex-direction: column; }
+        .player-name { font-weight: bold; }
+        .player-meta { font-size: 11px; color: #718096; }
+        .draft-btns button { padding: 4px 6px; font-size: 11px; margin-left: 2px; cursor: pointer; border: none; border-radius: 3px; color: white; font-weight: bold; }
+        .btn-red { background: #e53e3e; } .btn-blue { background: #3182ce; } .btn-gray { background: #a0aec0; }
+        .btn-sub-red { background: #c53030; } .btn-sub-blue { background: #2b6cb0; }
+        
+        /* Slot Lineup Rows */
+        .slot-row { background: white; border: 1px solid #cbd5e0; padding: 5px 8px; margin-bottom: 4px; border-radius: 4px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; }
+        .slot-badge { font-weight: bold; width: 38px; display: inline-block; padding: 2px 4px; border-radius: 3px; font-size: 11px; text-align: center; color: white; }
+        .badge-red { background: #e53e3e; } .badge-blue { background: #3182ce; }
+        .slot-select { flex: 1; margin: 0 8px; padding: 3px 6px; font-size: 12px; border-radius: 3px; border: 1px solid #cbd5e0; font-weight: bold; }
+        .pos-status { font-size: 10px; font-weight: bold; padding: 2px 5px; border-radius: 3px; }
+        .status-exact { background: #c6f6d5; color: #22543d; }
+        .status-alt { background: #feebc8; color: #744210; }
+        .status-oop { background: #fed7d7; color: #742a2a; }
+
+        .section-sub-title { font-size: 11px; font-weight: bold; color: #718096; text-transform: uppercase; margin: 8px 0 4px 0; border-bottom: 1px dashed #cbd5e0; padding-bottom: 2px; }
+
+        .ovr-bar { display: flex; align-items: center; gap: 10px; padding: 8px 15px; background: #2d3748; color: white; border-radius: 6px; margin-bottom: 12px; justify-content: center; }
+        .ovr-label { font-size: 13px; } .ovr-num { font-size: 24px; font-weight: bold; }
+        .ovr-red { color: #fc8181; } .ovr-blue { color: #63b3ed; }
+        
+        /* Match UI */
+        .scoreboard { display: flex; justify-content: space-between; align-items: center; background: #2d3748; color: white; padding: 14px 25px; border-radius: 8px; font-weight: bold; margin-bottom: 10px; }
+        .team-name { font-size: 20px; flex: 1; text-align: center; }
+        .score-box { font-size: 40px; background: rgba(0,0,0,0.4); padding: 4px 18px; border-radius: 8px; margin: 0 15px; letter-spacing: 2px; }
+        .match-stats-header { text-align: center; font-size: 12px; color: #cbd5e0; display: flex; gap: 15px; justify-content: center; margin-top: 4px; }
+        
+        /* 2D Pitch Canvas */
+        .pitch-card { background: #1a202c; border-radius: 8px; padding: 10px; margin-bottom: 10px; text-align: center; }
+        canvas#pitchCanvas { max-width: 100%; height: auto; border: 2px solid #2d3748; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); background: #22543d; display: block; margin: 0 auto; }
+        .pitch-legend { display: flex; justify-content: center; gap: 20px; font-size: 12px; color: #e2e8f0; margin-top: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+
+        /* Controls */
+        .controls-row { display: flex; gap: 10px; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+        .speed-bar { display: flex; align-items: center; gap: 6px; }
+        .speed-btn { padding: 5px 12px; border: 2px solid #cbd5e0; background: white; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .speed-btn.active { background: #3182ce; color: white; border-color: #2b6cb0; }
+        .btn-pause { background: #dd6b20; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .btn-sub { background: #805ad5; color: white; border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; font-size: 12px; }
+
+        .time-min { font-size: 26px; font-weight: bold; color: #2b6cb0; display: inline-block; vertical-align: middle; }
+        .log-container { background: #f7fafc; border: 1px solid #cbd5e0; border-radius: 8px; height: 320px; overflow-y: auto; padding: 12px; font-size: 13px; line-height: 1.5; }
+        .log-entry { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid #edf2f7; }
+        .log-time { font-weight: bold; color: #4a5568; margin-right: 8px; width: 55px; display: inline-block; }
+        .goal { color: #e53e3e; font-weight: bold; font-size: 14px; }
+        
+        .action-btn { background: #48bb78; color: white; border: none; padding: 10px 20px; font-size: 15px; font-weight: bold; border-radius: 6px; cursor: pointer; width: 100%; }
+        .action-btn:hover { background: #38a169; }
+        .action-btn:disabled { background: #a0aec0; cursor: not-allowed; }
+        
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 90%; max-width: 700px; max-height: 85vh; overflow-y: auto; }
+        .sub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-top: 15px; }
+        .sub-box { border: 1px solid #cbd5e0; border-radius: 6px; padding: 10px; background: #f7fafc; }
+        .sub-item { padding: 6px; border: 1px solid #e2e8f0; margin-bottom: 5px; border-radius: 4px; background: white; cursor: pointer; font-size: 12px; display: flex; justify-content: space-between; align-items: center; }
+        .sub-item.selected { border-color: #3182ce; background: #ebf8ff; font-weight: bold; }
+        .sta-meter { display: inline-block; width: 40px; height: 6px; background: #edf2f7; border-radius: 3px; overflow: hidden; margin-left: 5px; }
+        .sta-fill { height: 100%; }
+
+        .summary-box { background: white; padding: 20px; border-radius: 8px; margin-top: 20px; border: 2px solid #cbd5e0; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: none; }
+        .summary-box table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: center; }
+        .summary-box th { background: #edf2f7; }
+
+        /* Mobile Responsive */
+        @media (max-width: 820px) {
+            body { padding: 5px; }
+            .container { padding: 10px; }
+            .tabs { flex-wrap: wrap; }
+            .tab-btn { padding: 7px 12px; font-size: 12px; }
+            .tactics-bar { flex-direction: column; gap: 8px; align-items: stretch; text-align: center; }
+            .tactics-select { justify-content: center; }
+            .draft-container { flex-direction: column; }
+            .scoreboard { padding: 10px; flex-direction: column; gap: 6px; }
+            .team-name { font-size: 16px; }
+            .score-box { font-size: 28px; padding: 2px 12px; margin: 4px 0; }
+            .controls-row { flex-direction: column; align-items: stretch; gap: 8px; }
+            .speed-bar { justify-content: center; }
+            .sub-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Simple Football Manager (SFM)</h1>
+    <div class="subtitle">Bản mô phỏng Chiến thuật 2D Top-Down • Match Engine • Position Fit System</div>
+    
+    <div class="tabs">
+        <button class="tab-btn active" id="btnTab1" onclick="showTab(1)">1. Database Cầu thủ</button>
+        <button class="tab-btn locked" id="btnTab2" onclick="showTab(2)">🔒 2. Chọn Đội & Sắp xếp Vị trí</button>
+        <button class="tab-btn locked" id="btnTab3" onclick="showTab(3)">🔒 3. Trận đấu 2D Top-Down</button>
+    </div>
+
+    <!-- TAB 1: DATABASE -->
+    <div id="tab1" class="tab-content active">
+        <p style="font-size: 13px; color:#4a5568;">
+            Bộ 19 thuộc tính: <b>Xanh</b> = Outfield, <b>Tím</b> = Thủ môn, <b>Cyan</b> = IQ & STA. 
+            Cột <b>Alt Pos</b> là vị trí phụ (không bị trừ điểm). Đá lệch vị trí bị giảm chỉ số theo khoảng cách (xa càng nặng, hiện ở nhãn %). Dữ liệu tự động lưu vĩnh viễn trên trình duyệt của bạn (có thể Xuất/Nhập file JSON để backup).
+        </p>
+        <div class="table-container">
+            <table class="db-table" id="dbTable">
+                <thead><tr>
+                    <th class="th-info" style="width:115px;">Tên</th>
+                    <th class="th-info" style="width:45px;">Chính</th>
+                    <th class="th-info" style="width:65px;">Alt Pos</th>
+                    <th class="th-info" style="width:45px;">Năm</th>
+                    <th class="th-info" style="width:55px;">Mùa</th>
+                    <th class="th-outfield" title="Pace">PAC</th><th class="th-outfield" title="Shooting">SHO</th><th class="th-outfield" title="Passing">PAS</th><th class="th-outfield" title="Dribbling">DRI</th><th class="th-outfield" title="Defending">DEF</th><th class="th-outfield" title="Physical">PHY</th>
+                    <th class="th-gk" title="Diving">DIV</th><th class="th-gk" title="Handling">HAN</th><th class="th-gk" title="Kicking">KIC</th><th class="th-gk" title="Reflexing">REF</th><th class="th-gk" title="Speed GK">SPE</th><th class="th-gk" title="Positioning GK">POS</th>
+                    <th class="th-extra" title="IQ">IQ</th><th class="th-extra" title="Stamina">STA</th><th class="th-info">Xoá</th>
+                </tr></thead>
+                <tbody id="dbBody"></tbody>
+            </table>
+        </div>
+        <div style="margin-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <button style="padding:7px 14px; cursor:pointer;" onclick="addRow()">+ Thêm Cầu thủ</button>
+            <button style="padding:7px 14px; cursor:pointer; background:#e2e8f0; border:1px solid #cbd5e0;" onclick="resetDefaultDB()">↺ Khôi phục gốc</button>
+            <button style="padding:7px 14px; cursor:pointer; background:#edf2f7; border:1px solid #cbd5e0;" onclick="exportDBFile()">📥 Xuất file JSON (Backup)</button>
+            <input type="file" id="importFileInput" style="display:none;" accept=".json" onchange="importDBFile(event)">
+            <button style="padding:7px 14px; cursor:pointer; background:#edf2f7; border:1px solid #cbd5e0;" onclick="document.getElementById('importFileInput').click()">📤 Nạp file JSON</button>
+            <button style="margin-left:auto; padding:8px 18px; cursor:pointer; background:#3182ce; color:white; border:none; border-radius:4px; font-weight:bold;" onclick="saveDatabaseAndGoToDraft()">Lưu DB & Đi tới Xếp Đội Hình ➡️</button>
+        </div>
+    </div>
+
+    <!-- TAB 2: DRAFT & TACTICAL SLOTS -->
+    <div id="tab2" class="tab-content">
+        <div class="tactics-bar">
+            <div class="tactics-select">
+                <span style="color:#e53e3e;">🔴 Sơ đồ Đội Đỏ:</span>
+                <select class="formation-dropdown" id="formRed" onchange="changeFormation('red')">
+                    <option value="4-3-3">4-3-3 Tấn công</option>
+                    <option value="4-4-2" selected>4-4-2 Truyền thống</option>
+                    <option value="3-5-2">3-5-2 Kiểm soát</option>
+                    <option value="4-2-3-1">4-2-3-1 Cân bằng</option>
+                </select>
+            </div>
+            <div class="tactics-select">
+                <span style="color:#3182ce;">🔵 Sơ đồ Đội Xanh:</span>
+                <select class="formation-dropdown" id="formBlue" onchange="changeFormation('blue')">
+                    <option value="4-3-3" selected>4-3-3 Tấn công</option>
+                    <option value="4-4-2">4-4-2 Truyền thống</option>
+                    <option value="3-5-2">3-5-2 Kiểm soát</option>
+                    <option value="4-2-3-1">4-2-3-1 Cân bằng</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="ovr-bar">
+            <span class="ovr-label">ĐỘI ĐỎ OVR:</span> <span class="ovr-num ovr-red" id="ovrRed">-</span>
+            <span style="margin:0 25px; font-size:18px;">⚔️</span>
+            <span class="ovr-label">ĐỘI XANH OVR:</span> <span class="ovr-num ovr-blue" id="ovrBlue">-</span>
+        </div>
+
+        <!-- TURN INDICATOR BANNER -->
+        <div style="background:#2d3748; color:white; padding:10px 15px; border-radius:8px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:13px; font-weight:bold;">🎯 LƯỢT CHỌN:</span>
+                <span id="turnBadge" style="font-size:15px; font-weight:bold; color:#fc8181; padding:3px 10px; background:rgba(0,0,0,0.35); border-radius:4px;">🔴 ĐỘI ĐỎ (Lượt 1)</span>
+                <span id="turnStatusDesc" style="font-size:12px; color:#cbd5e0;">(Mỗi bên pick lần lượt 1 cầu thủ)</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+                <button style="padding:5px 12px; font-size:12px; cursor:pointer; background:#4a5568; color:white; border:none; border-radius:4px; font-weight:bold;" onclick="aiPickCurrentTurn()">🤖 AI Chọn hộ lượt này</button>
+                <button style="padding:5px 12px; font-size:12px; cursor:pointer; background:#718096; color:white; border:none; border-radius:4px; font-weight:bold;" onclick="resetDraftTurns()">↺ Reset lượt</button>
+            </div>
+        </div>
+
+        <div class="draft-container">
+            <!-- ĐỘI ĐỎ SLOTS -->
+            <div class="draft-col">
+                <h3 style="color:#e53e3e; text-align:center; margin:0 0 5px 0;">ĐỘI ĐỎ (11 VỊ TRÍ CHÍNH)</h3>
+                <button style="align-self:center; margin-bottom:4px; padding:3px 10px; font-size:11px; cursor:pointer; border:1px solid #cbd5e0; border-radius:4px; background:white;" onclick="autoArrangeClick('red')">⚙️ Xếp vị trí tối ưu</button>
+                <div class="section-sub-title">Sắp xếp 11 Vị trí chiến thuật</div>
+                <div class="draft-list" id="slotsRedList" style="max-height:270px;"></div>
+                <div class="section-sub-title">Dự bị (<span id="countRedSub">0</span>/5)</div>
+                <div class="draft-list" id="listRedSub" style="max-height:140px;"></div>
+            </div>
+
+            <!-- KHO CẦU THỦ DRAFT -->
+            <div class="draft-col" style="flex:1.2; border:2px solid #3182ce;">
+                <h3 style="text-align:center; margin:0 0 5px 0;">KHO CẦU THỦ</h3>
+                <input type="text" id="searchBox" placeholder="🔍 Tìm kiếm theo tên hoặc vị trí..." style="width:94%; padding:6px; margin:0 auto 8px auto; display:block; border:1px solid #cbd5e0; border-radius:4px;" onkeyup="renderPool()">
+                <div class="draft-list" id="listPool"></div>
+            </div>
+
+            <!-- ĐỘI XANH SLOTS -->
+            <div class="draft-col">
+                <h3 style="color:#3182ce; text-align:center; margin:0 0 5px 0;">ĐỘI XANH (11 VỊ TRÍ CHÍNH)</h3>
+                <button style="align-self:center; margin-bottom:4px; padding:3px 10px; font-size:11px; cursor:pointer; border:1px solid #cbd5e0; border-radius:4px; background:white;" onclick="autoArrangeClick('blue')">⚙️ Xếp vị trí tối ưu</button>
+                <div class="section-sub-title">Sắp xếp 11 Vị trí chiến thuật</div>
+                <div class="draft-list" id="slotsBlueList" style="max-height:270px;"></div>
+                <div class="section-sub-title">Dự bị (<span id="countBlueSub">0</span>/5)</div>
+                <div class="draft-list" id="listBlueSub" style="max-height:140px;"></div>
+            </div>
+        </div>
+
+        <button class="action-btn" id="btnGoMatch" onclick="goToMatch()" style="margin-top:15px;" disabled>Hãy điền đủ 11 cầu thủ vào 11 vị trí mỗi bên.</button>
+    </div>
+
+    <!-- TAB 3: 2D PITCH & MATCH -->
+    <div id="tab3" class="tab-content">
+        <div class="scoreboard">
+            <div class="team-name" style="color:#fc8181;">ĐỘI ĐỎ <span style="font-size:13px; color:#cbd5e0;" id="matchFormRed"></span></div>
+            <div style="text-align:center;">
+                <div class="score-box"><span id="homeScore">0</span> - <span id="awayScore">0</span></div>
+                <div class="match-stats-header">
+                    <span>Kiểm soát: <b id="posRed">50%</b> - <b id="posBlue">50%</b></span>
+                    <span>Cú sút: <b id="shotsRed">0</b> (<span id="onTargetRed">0</span>) - <b id="shotsBlue">0</b> (<span id="onTargetBlue">0</span>)</span>
+                </div>
+            </div>
+            <div class="team-name" style="color:#63b3ed;">ĐỘI XANH <span style="font-size:13px; color:#cbd5e0;" id="matchFormBlue"></span></div>
+        </div>
+
+        <!-- 2D TOP-DOWN FIELD CANVAS -->
+        <div class="pitch-card">
+            <canvas id="pitchCanvas" width="760" height="380"></canvas>
+            <div class="pitch-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:#fc8181;"></div> Đội Đỏ (Thủ gôn Trái 🥅)</div>
+                <div class="legend-item"><div class="legend-dot" style="background:#63b3ed;"></div> Đội Xanh (Thủ gôn Phải 🥅)</div>
+                <div class="legend-item"><span>✨ Cầu thủ di chuyển sống động • Đang giữ bóng có vòng hào quang</span></div>
+            </div>
+        </div>
+
+        <!-- CONTROLS ROW -->
+        <div class="controls-row">
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span class="time-min" id="timeMin">00'</span>
+                <button class="btn-pause" id="btnPause" onclick="togglePause()" style="display:none;">⏸ Tạm dừng</button>
+                <button class="btn-sub" id="btnSub" onclick="openSubModal()" style="display:none;">🔄 Thay người (<span id="subsLeft">5/5</span>)</button>
+            </div>
+            <div class="speed-bar">
+                <span style="font-size:12px; color:#718096;">Tốc độ:</span>
+                <button class="speed-btn" onclick="setSpeed(600)" id="sp05">0.5x</button>
+                <button class="speed-btn active" onclick="setSpeed(350)" id="sp1">1x</button>
+                <button class="speed-btn" onclick="setSpeed(180)" id="sp2">2x</button>
+                <button class="speed-btn" onclick="setSpeed(80)" id="sp3">3x</button>
+                <button class="speed-btn" onclick="setSpeed(20)" id="sp5">⚡ Max</button>
+            </div>
+        </div>
+
+        <button class="action-btn" id="startBtn" onclick="startMatch()">BẮT ĐẦU TRẬN ĐẤU</button>
+        <div class="log-container" id="logBox" style="margin-top:10px;"></div>
+        <div class="summary-box" id="summaryBox"></div>
+    </div>
+</div>
+
+<!-- SUBSTITUTION MODAL -->
+<div class="modal" id="subModal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color:#2c5282;">🔄 Thay người chiến thuật</h3>
+        <p style="font-size:12px; color:#718096;">Chọn 1 cầu thủ trên sân và 1 cầu thủ dự bị để hoán đổi. Số lần thay còn lại: <b id="modalSubsLeft">5</b></p>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="tab-btn active" id="subTabRed" onclick="switchSubTeam('red')">Đội Đỏ 🔴</button>
+            <button class="tab-btn" id="subTabBlue" onclick="switchSubTeam('blue')">Đội Xanh 🔵</button>
+        </div>
+        <div class="sub-grid">
+            <div class="sub-box">
+                <h4 style="margin:0 0 8px 0;">Cầu thủ trên sân (OUT)</h4>
+                <div id="subOutList"></div>
+            </div>
+            <div class="sub-box">
+                <h4 style="margin:0 0 8px 0;">Cầu thủ dự bị (IN)</h4>
+                <div id="subInList"></div>
+            </div>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:15px;">
+            <button style="padding:6px 14px; cursor:pointer;" onclick="closeSubModal()">Hủy</button>
+            <button style="padding:6px 16px; background:#48bb78; color:white; border:none; border-radius:4px; font-weight:bold; cursor:pointer;" onclick="confirmSubstitution()">Xác nhận thay người</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ================= DATA =================
+// 19 Attributes: Name, Pos, AltPos, Year, Season, PAC, SHO, PAS, DRI, DEF, PHY, DIV, HAN, KIC, REF, SPE, POS, IQ, STA
+// <<DB_DATA_START>>
+const DB_VERSION = "820fb5d153";
+let defaultDB = [
+    ["R. Lewandowski","ST","","2023","Base",75,91,79,86,44,83,0,0,0,0,0,0,93,76],
+    ["L. Messi","RW","","2023","Base",81,89,90,94,34,64,0,0,0,0,0,0,92,70],
+    ["K. Mbappé","ST","LW","2023","Base",97,89,80,92,36,76,0,0,0,0,0,0,93,87],
+    ["K. De Bruyne","CM","CAM","2023","Base",74,88,93,87,64,77,0,0,0,0,0,0,91,88],
+    ["K. Benzema","CF","ST","2023","Base",80,88,83,87,39,78,0,0,0,0,0,0,92,82],
+    ["V. van Dijk","CB","","2023","Base",81,60,71,72,91,86,0,0,0,0,0,0,89,74],
+    ["T. Courtois","GK","","2023","Base",0,0,0,0,0,55,84,89,75,90,48,89,84,38],
+    ["M. Salah","RW","","2023","Base",90,89,82,90,45,75,0,0,0,0,0,0,93,87],
+    ["M. Neuer","GK","","2023","Base",0,0,0,0,0,55,87,88,91,88,57,91,87,43],
+    ["Cristiano Ronaldo","ST","","2023","Base",81,92,78,85,34,75,0,0,0,0,0,0,94,76],
+    ["S. Mané","LM","CF","2023","Base",90,83,80,88,44,77,0,0,0,0,0,0,91,85],
+    ["Neymar Jr","LW","","2023","Base",87,83,85,93,37,61,0,0,0,0,0,0,88,79],
+    ["N. Kanté","CDM","CM","2023","Base",72,66,74,81,87,82,0,0,0,0,0,0,93,95],
+    ["J. Oblak","GK","","2023","Base",0,0,0,0,0,55,86,90,78,89,51,87,87,41],
+    ["J. Kimmich","CDM","RB","2023","Base",68,72,87,84,83,79,0,0,0,0,0,0,88,94],
+    ["H. Son","LW","LM","2023","Base",88,89,82,86,42,69,0,0,0,0,0,0,91,88],
+    ["H. Kane","ST","","2023","Base",68,91,83,82,47,82,0,0,0,0,0,0,92,83],
+    ["Ederson","GK","","2023","Base",0,0,0,0,0,55,87,82,93,88,63,88,88,41],
+    ["Casemiro","CDM","","2023","Base",63,73,75,72,87,90,0,0,0,0,0,0,87,90],
+    ["Alisson","GK","","2023","Base",0,0,0,0,0,55,86,85,85,89,53,90,87,32],
+    ["T. Kroos","CM","","2023","Base",53,81,90,81,71,68,0,0,0,0,0,0,90,75],
+    ["Rúben Dias","CB","","2023","Base",63,39,66,68,88,88,0,0,0,0,0,0,89,83],
+    ["Marquinhos","CB","","2023","Base",79,56,75,74,89,80,0,0,0,0,0,0,88,82],
+    ["M. ter Stegen","GK","","2023","Base",0,0,0,0,0,55,86,85,87,90,48,85,85,35],
+    ["L. Modrić","CM","","2023","Base",73,76,89,88,72,66,0,0,0,0,0,0,88,83],
+    ["K. Navas","GK","","2023","Base",0,0,0,0,0,55,89,84,75,89,53,87,85,39],
+    ["João Cancelo","LB","RB","2023","Base",85,73,85,85,81,73,0,0,0,0,0,0,85,91],
+    ["G. Donnarumma","GK","","2023","Base",0,0,0,0,0,55,90,83,79,89,53,85,85,34],
+    ["E. Haaland","ST","","2023","Base",89,91,65,80,49,87,0,0,0,0,0,0,88,81],
+    ["Bernardo Silva","CAM","CM","2023","Base",77,78,84,92,61,68,0,0,0,0,0,0,87,93],
+    ["T. Müller","CAM","CF","2023","Base",69,84,83,80,56,71,0,0,0,0,0,0,94,86],
+    ["T. Alexander-Arnold","RB","","2023","Base",76,69,89,80,80,73,0,0,0,0,0,0,83,89],
+    ["Rodri","CDM","","2023","Base",58,72,78,79,83,84,0,0,0,0,0,0,82,88],
+    ["M. Verratti","CM","CAM","2023","Base",60,61,87,91,79,66,0,0,0,0,0,0,87,75],
+    ["M. Maignan","GK","","2023","Base",0,0,0,0,0,55,85,82,85,89,52,85,85,39],
+    ["L. Goretzka","CM","CDM","2023","Base",78,82,82,83,81,86,0,0,0,0,0,0,87,86],
+    ["K. Koulibaly","CB","","2023","Base",82,33,59,68,88,85,0,0,0,0,0,0,83,70],
+    ["H. Lloris","GK","","2023","Base",0,0,0,0,0,55,88,83,74,88,62,84,84,41],
+    ["Fabinho","CDM","CB","2023","Base",66,69,78,77,86,83,0,0,0,0,0,0,86,88],
+    ["F. de Jong","CM","","2023","Base",82,69,86,87,77,78,0,0,0,0,0,0,88,89],
+    ["De Gea","GK","","2023","Base",0,0,0,0,0,55,88,80,76,89,51,84,89,43],
+    ["A. Rüdiger","CB","","2023","Base",82,53,71,67,86,85,0,0,0,0,0,0,85,71],
+    ["A. Robertson","LB","","2023","Base",80,61,81,81,82,76,0,0,0,0,0,0,85,95],
+    ["É. Mendy","GK","","2023","Base",0,0,0,0,0,55,84,82,81,88,35,85,84,37],
+    ["W. Szczęsny","GK","","2023","Base",0,0,0,0,0,55,86,81,73,87,49,86,82,45],
+    ["Vinícius Jr.","LW","","2023","Base",95,79,74,90,29,67,0,0,0,0,0,0,82,84],
+    ["Thiago Silva","CB","","2023","Base",49,54,73,72,87,76,0,0,0,0,0,0,83,66],
+    ["Thiago","CM","","2023","Base",61,72,87,90,72,69,0,0,0,0,0,0,84,76],
+    ["S. Milinković-Savić","CM","","2023","Base",68,80,82,82,79,86,0,0,0,0,0,0,84,91],
+    ["R. Sterling","LW","RW","2023","Base",90,80,78,86,45,67,0,0,0,0,0,0,91,79],
+    ["R. Mahrez","RW","RM","2023","Base",80,83,81,90,38,60,0,0,0,0,0,0,83,75],
+    ["R. Lukaku","ST","","2023","Base",80,85,75,77,38,82,0,0,0,0,0,0,86,67],
+    ["Parejo","CM","","2023","Base",50,83,90,80,71,68,0,0,0,0,0,0,79,76],
+    ["P. Dybala","CF","CAM","2023","Base",80,85,85,90,40,59,0,0,0,0,0,0,79,68],
+    ["N. Barella","CM","","2023","Base",79,76,83,84,77,81,0,0,0,0,0,0,88,94],
+    ["M. Škriniar","CB","","2023","Base",78,41,57,69,88,86,0,0,0,0,0,0,86,81],
+    ["M. Brozović","CDM","CM","2023","Base",69,74,81,81,81,78,0,0,0,0,0,0,83,94],
+    ["L. Martínez","ST","","2023","Base",83,83,72,85,48,84,0,0,0,0,0,0,89,80],
+    ["K. Trapp","GK","","2023","Base",0,0,0,0,0,55,84,82,79,87,47,85,83,45],
+    ["K. Coman","LM","","2023","Base",92,77,79,87,30,62,0,0,0,0,0,0,86,73],
+    ["D. Alaba","CB","","2023","Base",79,71,83,80,85,77,0,0,0,0,0,0,88,74],
+    ["C. Nkunku","CF","CAM,ST","2023","Base",88,81,83,88,65,66,0,0,0,0,0,0,85,78],
+    ["C. Immobile","ST","","2023","Base",85,87,68,80,39,75,0,0,0,0,0,0,87,78],
+    ["Bruno Fernandes","CAM","CM","2023","Base",72,86,88,81,67,76,0,0,0,0,0,0,91,92],
+    ["A. Laporte","CB","","2023","Base",61,50,72,69,86,79,0,0,0,0,0,0,87,67],
+    ["İ. Gündoğan","CM","CDM","2023","Base",64,80,85,85,72,72,0,0,0,0,0,0,86,74],
+    ["Y. Sommer","GK","","2023","Base",0,0,0,0,0,55,78,81,82,90,51,86,82,45],
+    ["Y. Carrasco","LM","","2023","Base",89,82,80,87,53,67,0,0,0,0,0,0,81,79],
+    ["T. Hernández","LB","","2023","Base",93,72,76,81,78,83,0,0,0,0,0,0,85,90],
+    ["Sergio Busquets","CDM","","2023","Base",42,62,79,79,82,73,0,0,0,0,0,0,81,75],
+    ["S. Gnabry","RM","","2023","Base",82,84,79,85,43,69,0,0,0,0,0,0,82,76],
+    ["Pedri","CM","","2023","Base",79,67,81,87,68,73,0,0,0,0,0,0,85,88],
+    ["P. Schick","ST","","2023","Base",78,83,71,83,36,76,0,0,0,0,0,0,82,69],
+    ["P. Pogba","CM","CDM,LM","2023","Base",67,80,85,85,62,80,0,0,0,0,0,0,77,65],
+    ["P. Gulácsi","GK","","2023","Base",0,0,0,0,0,55,85,84,76,85,43,83,81,37],
+    ["P. Foden","LW","CF,CAM","2023","Base",82,78,81,88,56,60,0,0,0,0,0,0,83,83],
+    ["P. Aubameyang","ST","","2023","Base",87,84,74,79,36,68,0,0,0,0,0,0,84,74],
+    ["N. Süle","CB","RB","2023","Base",71,48,66,59,85,83,0,0,0,0,0,0,82,65],
+    ["N. Fekir","CAM","","2023","Base",83,82,82,87,38,80,0,0,0,0,0,0,81,80],
+    ["M. de Ligt","CB","","2023","Base",75,59,61,69,84,87,0,0,0,0,0,0,84,75],
+    ["M. Reus","CAM","CF,RM","2023","Base",70,84,84,85,53,65,0,0,0,0,0,0,86,72],
+    ["M. Depay","CF","ST,LW","2023","Base",83,84,82,86,30,79,0,0,0,0,0,0,84,79],
+    ["M. Acuña","LB","","2023","Base",76,74,83,87,80,83,0,0,0,0,0,0,84,91],
+    ["K. Walker","RB","","2023","Base",91,63,77,78,80,82,0,0,0,0,0,0,85,86],
+    ["Jorginho","CM","","2023","Base",54,67,86,81,73,73,0,0,0,0,0,0,82,87],
+    ["Jordi Alba","LB","","2023","Base",84,70,82,82,77,70,0,0,0,0,0,0,79,83],
+    ["J. Vardy","ST","","2023","Base",84,84,70,79,52,72,0,0,0,0,0,0,88,73],
+    ["Iago Aspas","ST","","2023","Base",82,85,79,86,35,63,0,0,0,0,0,0,84,70],
+    ["Gerard Moreno","ST","","2023","Base",78,86,77,83,46,72,0,0,0,0,0,0,85,77],
+    ["F. Kostić","LM","LWB","2023","Base",84,78,82,82,68,80,0,0,0,0,0,0,82,90],
+    ["Diogo Jota","CF","LW","2023","Base",85,83,75,85,57,77,0,0,0,0,0,0,87,83],
+    ["Éder Militão","CB","","2023","Base",86,50,70,72,85,82,0,0,0,0,0,0,85,86],
+    ["Á. Di María","RW","","2023","Base",79,79,84,87,48,67,0,0,0,0,0,0,83,74],
+    ["Y. Tielemans","CM","CDM","2023","Base",56,80,86,81,70,73,0,0,0,0,0,0,84,85],
+    ["Y. Bounou","GK","","2023","Base",0,0,0,0,0,55,84,81,76,86,35,84,80,43],
+    ["W. Ndidi","CDM","CM","2023","Base",66,62,68,73,85,83,0,0,0,0,0,0,87,89],
+    ["W. Ben Yedder","ST","","2023","Base",81,84,78,88,39,68,0,0,0,0,0,0,85,72],
+    ["T. Partey","CDM","CM","2023","Base",65,71,81,80,80,83,0,0,0,0,0,0,82,82],
+    ["Sergio Ramos","CB","","2023","Base",61,69,73,70,83,77,0,0,0,0,0,0,85,56],
+    ["S. de Vrij","CB","","2023","Base",68,41,65,69,87,79,0,0,0,0,0,0,85,80],
+    ["S. Tonali","CDM","CM","2023","Base",81,73,81,79,79,82,0,0,0,0,0,0,82,85],
+    ["S. Savić","CB","","2023","Base",64,35,58,58,87,80,0,0,0,0,0,0,82,69],
+    ["S. Handanovič","GK","","2023","Base",0,0,0,0,0,55,80,80,65,85,44,90,79,36],
+    ["Rafael Leão","LW","LM","2023","Base",91,77,73,86,27,74,0,0,0,0,0,0,83,77],
+    ["R. Varane","CB","","2023","Base",81,49,64,66,85,80,0,0,0,0,0,0,82,67],
+    ["R. James","RWB","RB","2023","Base",81,70,82,82,80,82,0,0,0,0,0,0,81,83],
+    ["R. De Paul","CM","","2023","Base",78,77,83,82,75,81,0,0,0,0,0,0,81,91],
+    ["Oyarzabal","LW","RW","2023","Base",80,83,81,84,41,62,0,0,0,0,0,0,80,79],
+    ["Muniain","LM","CAM","2023","Base",81,77,82,87,51,61,0,0,0,0,0,0,81,77],
+    ["Marcos Llorente","CM","RM,RB","2023","Base",88,79,81,82,78,81,0,0,0,0,0,0,85,90],
+    ["M. Ødegaard","CAM","CM","2023","Base",76,75,86,84,58,63,0,0,0,0,0,0,74,79],
+    ["M. Mount","CAM","RW","2023","Base",74,81,85,82,55,67,0,0,0,0,0,0,84,86],
+    ["M. Kovačić","CM","","2023","Base",70,69,83,88,71,71,0,0,0,0,0,0,82,79],
+    ["M. Hummels","CB","","2023","Base",53,59,76,72,87,78,0,0,0,0,0,0,86,66],
+    ["M. Diaby","RM","LM,LW","2023","Base",93,73,75,87,42,59,0,0,0,0,0,0,76,82],
+    ["L. Suárez","ST","","2023","Base",70,86,78,78,46,81,0,0,0,0,0,0,86,71],
+    ["L. Sané","LM","","2023","Base",88,81,80,85,38,66,0,0,0,0,0,0,82,70],
+    ["L. Pellegrini","CAM","CM","2023","Base",79,77,83,84,74,78,0,0,0,0,0,0,85,90],
+    ["L. Insigne","LW","CF,LM","2023","Base",84,78,84,89,36,45,0,0,0,0,0,0,77,74],
+    ["L. Hernández","CB","LB","2023","Base",77,54,70,71,84,80,0,0,0,0,0,0,85,76],
+    ["L. Messi","RW","ST,CF","2022","Base",85,92,91,95,34,65,0,0,0,0,0,0,94,72],
+    ["R. Lewandowski","ST","","2022","Base",78,92,79,86,44,82,0,0,0,0,0,0,93,76],
+    ["Neymar Jr","LW","CAM","2022","Base",91,83,86,94,37,63,0,0,0,0,0,0,89,81],
+    ["K. Mbappé","ST","LW","2022","Base",97,88,80,92,36,77,0,0,0,0,0,0,93,88],
+    ["K. De Bruyne","CM","CAM","2022","Base",76,86,93,88,64,78,0,0,0,0,0,0,91,89],
+    ["J. Oblak","GK","","2022","Base",0,0,0,0,0,55,87,92,78,90,50,90,88,41],
+    ["Cristiano Ronaldo","ST","LW","2022","Base",87,93,82,88,34,75,0,0,0,0,0,0,94,77],
+    ["N. Kanté","CDM","CM","2022","Base",78,66,75,82,87,83,0,0,0,0,0,0,93,97],
+    ["M. ter Stegen","GK","","2022","Base",0,0,0,0,0,55,88,85,88,90,43,88,86,35],
+    ["M. Neuer","GK","","2022","Base",0,0,0,0,0,55,88,88,91,88,56,89,87,43],
+    ["H. Kane","ST","","2022","Base",70,91,83,83,47,83,0,0,0,0,0,0,92,83],
+    ["V. van Dijk","CB","","2022","Base",78,60,71,72,91,84,0,0,0,0,0,0,87,69],
+    ["T. Courtois","GK","","2022","Base",0,0,0,0,0,55,84,89,74,88,46,86,84,38],
+    ["S. Mané","LW","","2022","Base",91,83,80,89,44,77,0,0,0,0,0,0,91,85],
+    ["M. Salah","RW","","2022","Base",90,87,81,90,45,75,0,0,0,0,0,0,92,85],
+    ["K. Benzema","CF","ST","2022","Base",76,86,81,87,39,77,0,0,0,0,0,0,91,78],
+    ["J. Kimmich","CDM","RB","2022","Base",70,73,86,84,83,79,0,0,0,0,0,0,88,94],
+    ["H. Son","LM","CF,LW","2022","Base",88,87,82,86,43,69,0,0,0,0,0,0,91,88],
+    ["G. Donnarumma","GK","","2022","Base",0,0,0,0,0,55,91,83,79,90,52,85,85,34],
+    ["Ederson","GK","","2022","Base",0,0,0,0,0,55,87,82,93,88,64,88,88,41],
+    ["Casemiro","CDM","","2022","Base",65,73,76,73,86,90,0,0,0,0,0,0,87,89],
+    ["Alisson","GK","","2022","Base",0,0,0,0,0,55,86,86,84,89,52,90,87,32],
+    ["T. Kroos","CM","","2022","Base",53,81,91,81,71,68,0,0,0,0,0,0,90,75],
+    ["Sergio Ramos","CB","","2022","Base",70,70,76,74,88,84,0,0,0,0,0,0,92,78],
+    ["R. Sterling","LW","RW","2022","Base",91,82,79,87,45,66,0,0,0,0,0,0,90,79],
+    ["R. Lukaku","ST","","2022","Base",84,87,74,78,39,83,0,0,0,0,0,0,91,71],
+    ["L. Suárez","ST","","2022","Base",72,90,82,84,47,83,0,0,0,0,0,0,92,78],
+    ["K. Navas","GK","","2022","Base",0,0,0,0,0,55,89,84,75,89,54,87,85,39],
+    ["E. Haaland","ST","","2022","Base",89,91,65,80,45,88,0,0,0,0,0,0,88,82],
+    ["Bruno Fernandes","CAM","","2022","Base",75,86,89,84,70,77,0,0,0,0,0,0,91,91],
+    ["Á. Di María","RW","LW","2022","Base",83,81,86,87,48,69,0,0,0,0,0,0,84,78],
+    ["W. Szczęsny","GK","","2022","Base",0,0,0,0,0,55,86,82,73,88,49,87,82,45],
+    ["T. Müller","CAM","RM,RW","2022","Base",67,84,83,80,56,71,0,0,0,0,0,0,94,86],
+    ["T. Alexander-Arnold","RB","","2022","Base",79,68,88,80,80,72,0,0,0,0,0,0,82,88],
+    ["S. Agüero","ST","","2022","Base",71,89,75,87,33,69,0,0,0,0,0,0,89,62],
+    ["Rúben Dias","CB","","2022","Base",61,38,65,68,88,88,0,0,0,0,0,0,87,88],
+    ["P. Pogba","CM","LM","2022","Base",71,81,86,86,65,83,0,0,0,0,0,0,83,77],
+    ["P. Dybala","CF","CAM","2022","Base",84,86,86,90,40,60,0,0,0,0,0,0,80,70],
+    ["Marquinhos","CB","CDM","2022","Base",81,53,75,74,89,81,0,0,0,0,0,0,87,83],
+    ["M. Verratti","CM","CAM","2022","Base",64,61,87,91,79,67,0,0,0,0,0,0,87,76],
+    ["L. Modrić","CM","","2022","Base",73,76,89,88,72,66,0,0,0,0,0,0,88,83],
+    ["L. Goretzka","CM","CDM","2022","Base",81,82,82,84,81,86,0,0,0,0,0,0,88,88],
+    ["J. Sancho","RM","CF,LM","2022","Base",81,76,82,91,36,65,0,0,0,0,0,0,85,77],
+    ["H. Lloris","GK","","2022","Base",0,0,0,0,0,55,88,83,65,90,61,84,85,41],
+    ["F. de Jong","CM","CDM,CB","2022","Base",81,69,85,88,77,78,0,0,0,0,0,0,88,90],
+    ["C. Immobile","ST","","2022","Base",86,87,67,81,39,77,0,0,0,0,0,0,90,78],
+    ["A. Robertson","LB","","2022","Base",84,61,80,81,82,76,0,0,0,0,0,0,85,95],
+    ["Thiago","CM","CDM","2022","Base",63,72,86,90,70,66,0,0,0,0,0,0,84,74],
+    ["Sergio Busquets","CDM","CM","2022","Base",42,62,79,80,82,75,0,0,0,0,0,0,86,78],
+    ["S. Handanovič","GK","","2022","Base",0,0,0,0,0,55,81,81,65,87,47,92,79,41],
+    ["Rodri","CDM","","2022","Base",61,70,77,78,82,82,0,0,0,0,0,0,80,87],
+    ["R. Varane","CB","","2022","Base",82,49,64,65,87,82,0,0,0,0,0,0,84,76],
+    ["R. Mahrez","RW","RM","2022","Base",81,79,81,90,38,60,0,0,0,0,0,0,81,75],
+    ["Parejo","CM","","2022","Base",50,83,90,81,71,69,0,0,0,0,0,0,80,78],
+    ["Marcos Llorente","CM","RM,ST","2022","Base",88,80,81,82,78,82,0,0,0,0,0,0,86,90],
+    ["M. Škriniar","CB","","2022","Base",80,41,53,69,87,84,0,0,0,0,0,0,86,79],
+    ["M. Hummels","CB","","2022","Base",56,59,77,73,89,77,0,0,0,0,0,0,88,66],
+    ["L. Insigne","LW","CF","2022","Base",87,78,85,90,36,45,0,0,0,0,0,0,80,74],
+    ["K. Koulibaly","CB","","2022","Base",81,28,51,65,87,85,0,0,0,0,0,0,83,70],
+    ["K. Coman","LM","RM,LW","2022","Base",93,76,79,88,30,60,0,0,0,0,0,0,85,69],
+    ["K. Casteels","GK","","2022","Base",0,0,0,0,0,55,85,83,80,87,45,84,83,44],
+    ["João Cancelo","RB","LB","2022","Base",85,71,83,84,80,72,0,0,0,0,0,0,85,90],
+    ["Jordi Alba","LB","LM","2022","Base",86,69,81,83,77,71,0,0,0,0,0,0,80,87],
+    ["J. Vardy","ST","","2022","Base",85,84,70,80,52,73,0,0,0,0,0,0,91,76],
+    ["Gerard Moreno","ST","RM,RW","2022","Base",79,86,77,84,46,73,0,0,0,0,0,0,89,79],
+    ["G. Chiellini","CB","","2022","Base",68,46,60,59,89,85,0,0,0,0,0,0,80,71],
+    ["Fabinho","CDM","CB","2022","Base",67,69,78,78,85,83,0,0,0,0,0,0,86,88],
+    ["Bernardo Silva","CAM","CM,RW","2022","Base",80,76,83,91,54,67,0,0,0,0,0,0,84,93],
+    ["A. Laporte","CB","","2022","Base",63,50,72,69,86,80,0,0,0,0,0,0,87,72],
+    ["İ. Gündoğan","CM","CDM","2022","Base",65,80,85,86,73,72,0,0,0,0,0,0,86,74],
+    ["Y. Sommer","GK","","2022","Base",0,0,0,0,0,55,79,81,84,86,50,86,82,45],
+    ["W. Ndidi","CDM","CM","2022","Base",67,62,69,74,87,83,0,0,0,0,0,0,88,90],
+    ["Thiago Silva","CB","","2022","Base",53,54,72,72,86,78,0,0,0,0,0,0,82,68],
+    ["S. de Vrij","CB","","2022","Base",72,41,64,70,87,79,0,0,0,0,0,0,85,80],
+    ["S. Milinković-Savić","CM","CDM,CAM","2022","Base",68,79,80,81,79,86,0,0,0,0,0,0,83,91],
+    ["S. Gnabry","RM","LM,RW","2022","Base",83,84,79,86,43,69,0,0,0,0,0,0,86,78],
+    ["Roberto Firmino","CF","","2022","Base",77,78,79,89,59,78,0,0,0,0,0,0,86,87],
+    ["P. Gulácsi","GK","","2022","Base",0,0,0,0,0,55,85,84,76,86,43,82,81,35],
+    ["P. Aubameyang","ST","LW,LM","2022","Base",89,85,75,80,35,69,0,0,0,0,0,0,86,79],
+    ["Oyarzabal","LW","","2022","Base",82,82,81,84,41,63,0,0,0,0,0,0,81,82],
+    ["M. de Ligt","CB","","2022","Base",73,59,60,69,84,87,0,0,0,0,0,0,84,75],
+    ["M. Reus","CAM","CF","2022","Base",73,84,84,85,47,63,0,0,0,0,0,0,86,67],
+    ["M. Rashford","LM","ST","2022","Base",90,84,79,84,43,77,0,0,0,0,0,0,84,86],
+    ["M. Depay","CF","LW,CAM","2022","Base",82,83,82,84,30,79,0,0,0,0,0,0,83,79],
+    ["L. Martínez","ST","","2022","Base",84,81,72,85,48,84,0,0,0,0,0,0,89,80],
+    ["L. Bonucci","CB","","2022","Base",64,58,69,72,86,80,0,0,0,0,0,0,82,65],
+    ["Koke","CM","CDM","2022","Base",70,75,85,81,79,80,0,0,0,0,0,0,88,93],
+    ["K. Walker","RB","","2022","Base",92,63,76,78,80,82,0,0,0,0,0,0,85,86],
+    ["K. Schmeichel","GK","","2022","Base",0,0,0,0,0,55,84,78,80,90,47,83,82,34],
+    ["Jorginho","CM","CDM","2022","Base",55,67,86,81,73,73,0,0,0,0,0,0,82,87],
+    ["E. Hazard","LW","","2022","Base",84,80,82,88,35,63,0,0,0,0,0,0,79,77],
+    ["E. Cavani","ST","","2022","Base",66,86,70,76,51,79,0,0,0,0,0,0,90,81],
+    ["David Silva","CAM","CM","2022","Base",63,74,87,87,52,53,0,0,0,0,0,0,85,66],
+    ["Carvajal","RB","","2022","Base",80,54,78,80,81,80,0,0,0,0,0,0,83,89],
+    ["A. Hakimi","RB","RWB","2022","Base",95,71,78,83,76,78,0,0,0,0,0,0,84,91],
+    ["A. Gómez","CAM","CF,CM","2022","Base",87,78,84,87,39,55,0,0,0,0,0,0,86,75],
+    ["A. Griezmann","ST","LW,RW","2022","Base",80,84,84,87,52,72,0,0,0,0,0,0,89,86],
+    ["Z. Ibrahimović","ST","","2022","Base",65,87,78,79,34,77,0,0,0,0,0,0,83,52],
+    ["Y. Tielemans","CM","CDM","2022","Base",63,79,86,80,71,72,0,0,0,0,0,0,83,81],
+    ["Y. Carrasco","LM","","2022","Base",88,81,78,85,45,67,0,0,0,0,0,0,80,80],
+    ["W. Ben Yedder","ST","","2022","Base",82,84,77,87,39,70,0,0,0,0,0,0,86,75],
+    ["T. Werner","ST","LW","2022","Base",91,81,70,82,35,70,0,0,0,0,0,0,87,83],
+    ["T. Hernández","LB","","2022","Base",93,71,76,81,77,82,0,0,0,0,0,0,84,90],
+    ["S. Savić","CB","","2022","Base",64,35,57,58,87,76,0,0,0,0,0,0,83,53],
+    ["Ricardo Pereira","RB","RM","2022","Base",83,67,78,82,80,75,0,0,0,0,0,0,83,84],
+    ["R. Guerreiro","LB","LM","2022","Base",75,77,85,88,76,58,0,0,0,0,0,0,86,79],
+    ["Piqué","CB","","2022","Base",58,61,71,68,85,78,0,0,0,0,0,0,85,63],
+    ["P. Foden","CAM","LW,CM","2022","Base",84,78,80,87,56,57,0,0,0,0,0,0,83,79],
+    ["N. Fekir","CAM","RM,ST","2022","Base",83,83,82,87,38,79,0,0,0,0,0,0,79,79],
+    ["N. Barella","CM","","2022","Base",78,71,79,86,75,78,0,0,0,0,0,0,89,95],
+    ["M. Sabitzer","CM","CDM,CAM","2022","Base",78,84,81,80,67,78,0,0,0,0,0,0,86,85],
+    ["M. Maignan","GK","","2022","Base",0,0,0,0,0,55,83,81,85,86,50,84,82,39],
+    ["M. Ginter","CB","","2022","Base",62,58,72,66,86,79,0,0,0,0,0,0,86,75],
+    ["M. Brozović","CDM","CM","2022","Base",69,74,80,79,79,78,0,0,0,0,0,0,76,94],
+    ["M. Acuña","LB","LM","2022","Base",76,74,82,87,79,82,0,0,0,0,0,0,83,90],
+    ["Luis Alberto","CAM","CM,CF","2022","Base",63,76,87,85,57,59,0,0,0,0,0,0,75,75],
+    ["L. Shaw","LB","","2022","Base",79,54,79,80,81,80,0,0,0,0,0,0,82,80],
+    ["L. Sané","RM","LM","2022","Base",90,81,79,85,38,68,0,0,0,0,0,0,79,68],
+    ["L. Digne","LB","","2022","Base",79,69,80,80,80,76,0,0,0,0,0,0,83,86],
+    ["K. Trippier","RB","RWB,RM","2022","Base",73,63,82,77,80,72,0,0,0,0,0,0,81,87]
+];
+// <<DB_DATA_END>>
+
+// ================= FORMATIONS DEFINITION =================
+// 11 Positions with Exact Field Coordinates
+// Red defends left goal (x=0.06), attacks right.
+// Blue defends right goal (x=0.94), attacks left.
+const FORMATION_SLOTS = {
+    '4-3-3': {
+        name: '4-3-3',
+        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LCM', 'CDM', 'RCM', 'LW', 'ST', 'RW'],
+        redCoords: [
+            { pos: 'GK', x: 0.06, y: 0.50 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LCM', x: 0.30, y: 0.28 }, { pos: 'CDM', x: 0.25, y: 0.50 }, { pos: 'RCM', x: 0.30, y: 0.72 },
+            { pos: 'LW', x: 0.44, y: 0.18 }, { pos: 'ST', x: 0.46, y: 0.50 }, { pos: 'RW', x: 0.44, y: 0.82 }
+        ],
+        blueCoords: [
+            { pos: 'GK', x: 0.94, y: 0.50 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RCM', x: 0.70, y: 0.28 }, { pos: 'CDM', x: 0.75, y: 0.50 }, { pos: 'LCM', x: 0.70, y: 0.72 },
+            { pos: 'RW', x: 0.56, y: 0.18 }, { pos: 'ST', x: 0.54, y: 0.50 }, { pos: 'LW', x: 0.56, y: 0.82 }
+        ]
+    },
+    '4-4-2': {
+        name: '4-4-2',
+        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LM', 'LCM', 'RCM', 'RM', 'LST', 'RST'],
+        redCoords: [
+            { pos: 'GK', x: 0.06, y: 0.50 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LM', x: 0.32, y: 0.15 }, { pos: 'LCM', x: 0.28, y: 0.38 }, { pos: 'RCM', x: 0.28, y: 0.62 }, { pos: 'RM', x: 0.32, y: 0.85 },
+            { pos: 'LST', x: 0.45, y: 0.38 }, { pos: 'RST', x: 0.45, y: 0.62 }
+        ],
+        blueCoords: [
+            { pos: 'GK', x: 0.94, y: 0.50 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RM', x: 0.68, y: 0.15 }, { pos: 'RCM', x: 0.72, y: 0.38 }, { pos: 'LCM', x: 0.72, y: 0.62 }, { pos: 'LM', x: 0.68, y: 0.85 },
+            { pos: 'RST', x: 0.55, y: 0.38 }, { pos: 'LST', x: 0.55, y: 0.62 }
+        ]
+    },
+    '3-5-2': {
+        name: '3-5-2',
+        roles: ['GK', 'LCB', 'CB', 'RCB', 'LWB', 'LCM', 'CDM', 'RCM', 'RWB', 'LST', 'RST'],
+        redCoords: [
+            { pos: 'GK', x: 0.06, y: 0.50 },
+            { pos: 'LCB', x: 0.16, y: 0.28 }, { pos: 'CB', x: 0.15, y: 0.50 }, { pos: 'RCB', x: 0.16, y: 0.72 },
+            { pos: 'LWB', x: 0.30, y: 0.12 }, { pos: 'LCM', x: 0.28, y: 0.36 }, { pos: 'CDM', x: 0.24, y: 0.50 }, { pos: 'RCM', x: 0.28, y: 0.64 }, { pos: 'RWB', x: 0.30, y: 0.88 },
+            { pos: 'LST', x: 0.46, y: 0.40 }, { pos: 'RST', x: 0.46, y: 0.60 }
+        ],
+        blueCoords: [
+            { pos: 'GK', x: 0.94, y: 0.50 },
+            { pos: 'RCB', x: 0.84, y: 0.28 }, { pos: 'CB', x: 0.85, y: 0.50 }, { pos: 'LCB', x: 0.84, y: 0.72 },
+            { pos: 'RWB', x: 0.70, y: 0.12 }, { pos: 'RCM', x: 0.72, y: 0.36 }, { pos: 'CDM', x: 0.76, y: 0.50 }, { pos: 'LCM', x: 0.72, y: 0.64 }, { pos: 'LWB', x: 0.70, y: 0.88 },
+            { pos: 'RST', x: 0.54, y: 0.40 }, { pos: 'LST', x: 0.54, y: 0.60 }
+        ]
+    },
+    '4-2-3-1': {
+        name: '4-2-3-1',
+        roles: ['GK', 'LB', 'LCB', 'RCB', 'RB', 'LDM', 'RDM', 'LAM', 'CAM', 'RAM', 'ST'],
+        redCoords: [
+            { pos: 'GK', x: 0.06, y: 0.50 },
+            { pos: 'LB', x: 0.18, y: 0.15 }, { pos: 'LCB', x: 0.16, y: 0.38 }, { pos: 'RCB', x: 0.16, y: 0.62 }, { pos: 'RB', x: 0.18, y: 0.85 },
+            { pos: 'LDM', x: 0.27, y: 0.38 }, { pos: 'RDM', x: 0.27, y: 0.62 },
+            { pos: 'LAM', x: 0.38, y: 0.20 }, { pos: 'CAM', x: 0.36, y: 0.50 }, { pos: 'RAM', x: 0.38, y: 0.80 },
+            { pos: 'ST', x: 0.47, y: 0.50 }
+        ],
+        blueCoords: [
+            { pos: 'GK', x: 0.94, y: 0.50 },
+            { pos: 'RB', x: 0.82, y: 0.15 }, { pos: 'RCB', x: 0.84, y: 0.38 }, { pos: 'LCB', x: 0.84, y: 0.62 }, { pos: 'LB', x: 0.82, y: 0.85 },
+            { pos: 'RDM', x: 0.73, y: 0.38 }, { pos: 'LDM', x: 0.73, y: 0.62 },
+            { pos: 'RAM', x: 0.62, y: 0.20 }, { pos: 'CAM', x: 0.64, y: 0.50 }, { pos: 'LAM', x: 0.62, y: 0.80 },
+            { pos: 'ST', x: 0.53, y: 0.50 }
+        ]
+    }
+};
+
+// ================= TABS =================
+let tabUnlocked = { 1: true, 2: false, 3: false };
+
+function showTab(idx) {
+    if (!tabUnlocked[idx]) return;
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab' + idx).classList.add('active');
+    document.getElementById('btnTab' + idx).classList.add('active');
+    if (idx === 3) {
+        startPitchLoop();
+    } else {
+        if (animFrameId) { cancelAnimationFrame(animFrameId); animFrameId = null; }
+        if (sentOffRed.length || sentOffBlue.length) {
+            sentOffRed.forEach(o => { if (o.slotIdx !== undefined && slotsRed[o.slotIdx] === null) slotsRed[o.slotIdx] = o.p; });
+            sentOffBlue.forEach(o => { if (o.slotIdx !== undefined && slotsBlue[o.slotIdx] === null) slotsBlue[o.slotIdx] = o.p; });
+            sentOffRed = []; sentOffBlue = [];
+            renderDrafts();
+        }
+    }
+}
+
+function unlockTab(idx) {
+    tabUnlocked[idx] = true;
+    let b = document.getElementById('btnTab' + idx);
+    b.classList.remove('locked');
+    b.innerText = b.innerText.replace('🔒 ', '');
+}
+
+// ================= DATABASE UI =================
+function addRow(data = ["","","","","","",0,0,0,0,0,0, 0,0,0,0,0,0, 50,70]) {
+    let tr = document.createElement('tr'), html = '';
+    for (let i = 0; i < 19; i++) {
+        let isText = i < 5;
+        let c = i === 0 ? "cell col-name" : "cell";
+        html += `<td><input type="${isText ? 'text' : 'number'}" class="${c}" value="${data[i] !== undefined ? data[i] : ''}"></td>`;
+    }
+    html += `<td><button onclick="this.parentElement.parentElement.remove()" style="cursor:pointer;">X</button></td>`;
+    tr.innerHTML = html;
+    document.getElementById('dbBody').appendChild(tr);
+}
+
+const DB_STORAGE_KEY = 'sfm_db_v6'; // {version, rows}
+
+function loadSavedDB() {
+    try {
+        let raw = localStorage.getItem(DB_STORAGE_KEY);
+        if (!raw) return null;
+        let o = JSON.parse(raw);
+        return (o && Array.isArray(o.rows)) ? o : null;
+    } catch (e) { return null; }
+}
+
+function storeDB(rows) {
+    try { localStorage.setItem(DB_STORAGE_KEY, JSON.stringify({ version: DB_VERSION, rows })); } catch (e) {}
+}
+
+function initDB() {
+    localStorage.removeItem('sfm_db_v5'); // bản cũ (120 cầu thủ FIFA 22) - bỏ
+    let saved = loadSavedDB();
+    let data = defaultDB;
+    if (saved) {
+        if (saved.version === DB_VERSION) {
+            data = saved.rows;
+        } else if (confirm(`Database gốc đã được cập nhật (${defaultDB.length} cầu thủ).\nOK = dùng bản mới (mất chỉnh sửa cũ)\nCancel = giữ bản bạn đã lưu`)) {
+            localStorage.removeItem(DB_STORAGE_KEY);
+        } else {
+            data = saved.rows;
+            storeDB(saved.rows); // ghi nhận đã hỏi, không hỏi lại
+        }
+    }
+    document.getElementById('dbBody').innerHTML = '';
+    data.forEach(d => addRow(d));
+}
+
+function resetDefaultDB() {
+    if (confirm(`Khôi phục database gốc (${defaultDB.length} cầu thủ: FIFA 22 + FIFA 23 base cards)?`)) {
+        localStorage.removeItem(DB_STORAGE_KEY);
+        document.getElementById('dbBody').innerHTML = '';
+        defaultDB.forEach(d => addRow(d));
+    }
+}
+
+function exportDBFile() {
+    let raw = getDBRowsArray();
+    let dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(raw, null, 2));
+    let dl = document.createElement('a');
+    dl.setAttribute("href", dataStr);
+    dl.setAttribute("download", "sfm_database.json");
+    dl.click();
+}
+
+function importDBFile(evt) {
+    let file = evt.target.files[0];
+    if (!file) return;
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            let data = JSON.parse(e.target.result);
+            if (Array.isArray(data)) {
+                document.getElementById('dbBody').innerHTML = '';
+                data.forEach(d => addRow(d));
+                storeDB(data);
+                alert("Nạp file dữ liệu thành công!");
+            }
+        } catch(err) {
+            alert("Lỗi đọc file: " + err.message);
+        }
+    };
+    reader.readAsText(file);
+}
+
+function getDBRowsArray() {
+    let rawToSave = [];
+    document.getElementById('dbBody').querySelectorAll('tr').forEach(tr => {
+        let ii = tr.querySelectorAll('input');
+        if (!ii[0].value.trim()) return;
+        let rowArr = [];
+        for (let idx = 0; idx < 19; idx++) rowArr.push(idx < 5 ? ii[idx].value.trim() : +ii[idx].value);
+        rawToSave.push(rowArr);
+    });
+    return rawToSave;
+}
+
+initDB();
+
+let allPlayers = [], pool = [];
+// Roster: Roster holds drafted pool for team; Slots hold which player is assigned to which slot!
+let rosterRed = [], rosterBlue = [];
+let slotsRed = new Array(11).fill(null);
+let slotsBlue = new Array(11).fill(null);
+let subsRed = [], subsBlue = [];
+
+function saveDatabaseAndGoToDraft() {
+    allPlayers = [];
+    let rawToSave = getDBRowsArray();
+    rawToSave.forEach(ii => {
+        allPlayers.push({
+            id: Math.random().toString(36).substr(2, 9),
+            name: ii[0], pos: ii[1].toUpperCase(),
+            altPos: (ii[2] || '').toUpperCase().split(',').map(s=>s.trim()).filter(Boolean),
+            year: ii[3], season: ii[4],
+            pac: +ii[5], sho: +ii[6], pas: +ii[7], dri: +ii[8], def: +ii[9], phy: +ii[10],
+            div: +ii[11], han: +ii[12], kic: +ii[13], ref: +ii[14], spe: +ii[15], pos_gk: +ii[16],
+            iq: +ii[17], sta: +ii[18],
+            key: nameKey(ii[0]),
+            seedX: Math.random() * 100, seedY: Math.random() * 100
+        });
+    });
+    storeDB(rawToSave);
+
+    pool = [...allPlayers];
+    rosterRed = []; rosterBlue = [];
+    slotsRed = new Array(11).fill(null);
+    slotsBlue = new Array(11).fill(null);
+    subsRed = []; subsBlue = [];
+    draftTurn = 'red'; draftTurnCount = 1;
+    unlockTab(2);
+    renderDrafts();
+    showTab(2);
+}
+
+let draftTurn = 'red';
+let draftTurnCount = 1;
+
+// Cùng 1 cầu thủ (khác năm/mùa) chỉ được xuất hiện 1 lần trong cả 2 đội
+function nameKey(n) {
+    return String(n || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+function takenKeys() {
+    return new Set([...rosterRed, ...rosterBlue, ...subsRed, ...subsBlue].map(p => p.key));
+}
+function availablePool() {
+    let taken = takenKeys();
+    return pool.filter(p => !taken.has(p.key));
+}
+
+function resetDraftTurns() {
+    pool = [...allPlayers];
+    rosterRed = []; rosterBlue = [];
+    slotsRed = new Array(11).fill(null);
+    slotsBlue = new Array(11).fill(null);
+    subsRed = []; subsBlue = [];
+    draftTurn = 'red'; draftTurnCount = 1;
+    renderDrafts();
+}
+
+function turnPickPlayer(id, isSub) {
+    let cand = pool.find(p => p.id === id);
+    if (!cand || takenKeys().has(cand.key)) return; // bản khác năm của cầu thủ này đã được chọn
+    let team = draftTurn;
+    draftToTeam(id, team, isSub);
+    draftTurn = (draftTurn === 'red') ? 'blue' : 'red';
+    draftTurnCount++;
+    renderDrafts();
+}
+
+function aiPickCurrentTurn() {
+    let avail = availablePool();
+    if (!avail.length) return;
+    let team = draftTurn;
+    let slots = team === 'red' ? slotsRed : slotsBlue;
+    let subs = team === 'red' ? subsRed : subsBlue;
+    let roles = getTeamRoles(team);
+    let emptyRoles = roles.filter((r, i) => !slots[i]);
+
+    // Đã đủ 11 người -> chọn dự bị OVR cao nhất
+    if (!emptyRoles.length) {
+        if (subs.length >= 5) return;
+        let b = avail.reduce((a, c) => calcOVR(c) > calcOVR(a) ? c : a, avail[0]);
+        turnPickPlayer(b.id, true);
+        return;
+    }
+
+    // Chọn cầu thủ có (OVR x hệ số hợp vị trí) cao nhất cho 1 trong các vị trí còn trống -> luôn có thủ môn
+    let best = null, bestScore = -1;
+    avail.forEach(p => emptyRoles.forEach(role => {
+        let sc = calcOVR(p) * checkPositionFit(p, role).mult;
+        if (sc > bestScore) { bestScore = sc; best = p; }
+    }));
+    turnPickPlayer(best.id, false);
+}
+
+// ================= OVR & STATS =================
+function calcOVR(p) {
+    if (!p) return 0;
+    if (p.pos === 'GK') {
+        let b = (p.div + p.han + p.kic + p.ref + p.spe + p.pos_gk) / 6;
+        return Math.round(b * 0.85 + p.iq * 0.08 + p.sta * 0.07);
+    }
+    let b = (p.pac + p.sho + p.pas + p.dri + p.def + p.phy) / 6;
+    return Math.round(b * 0.85 + p.iq * 0.08 + p.sta * 0.07);
+}
+
+function teamOVR(teamSlots) {
+    let filled = teamSlots.filter(Boolean);
+    if (!filled.length) return '-';
+    return Math.round(filled.reduce((a, p) => a + calcOVR(p), 0) / filled.length);
+}
+
+// ===== POSITION FIT START =====
+// Mỗi vị trí có toạ độ [độ sâu, bề ngang]: độ sâu 0 = thủ môn ... 6 = tiền đạo cắm; ngang -1 = trái, 0 = giữa, +1 = phải.
+// Đá lệch vị trí: điểm phạt = khoảng cách * trọng số; chỉ số nhân với (1 - phạt/150), tối thiểu 0.30.
+const POS_COORD = {
+    GK: [0, 0],
+    CB: [1, 0], LB: [1.5, -1], RB: [1.5, 1],
+    LWB: [2.0, -1], RWB: [2.0, 1], CDM: [2.5, 0],
+    CM: [3.5, 0], LM: [4.0, -1], RM: [4.0, 1],
+    CAM: [4.5, 0], LAM: [4.6, -1], RAM: [4.6, 1],
+    LW: [5.2, -1], RW: [5.2, 1], CF: [5.6, 0], ST: [6.0, 0]
+};
+// Slot trái/phải của vị trí trung tâm quy về vị trí gốc
+const POS_CANON = { LCB: 'CB', RCB: 'CB', LST: 'ST', RST: 'ST', LDM: 'CDM', RDM: 'CDM', LCM: 'CM', RCM: 'CM' };
+const FIT_CFG = {
+    depthWeight: 12,      // mỗi 1 bậc độ sâu = 12 điểm phạt
+    widthWeight: 8,       // mỗi 1 bậc bên cánh (trái<->giữa) = 8 điểm phạt
+    maxOutfield: 60,      // trần điểm phạt cho cầu thủ sân
+    gkMismatch: 100,      // thủ môn đá sân / cầu thủ sân bắt gôn
+    penaltyDivisor: 150,  // hệ số chỉ số = 1 - điểm phạt / 150 (phạt 12 -> x0.92, 60 -> x0.60)
+    minMultiplier: 0.30,  // sàn hệ số (kể cả sai hẳn vị trí)
+    freeTolerance: 8      // lệch rất nhỏ (vd CF<->ST) coi như vị trí phụ, không phạt
+};
+
+function canonPos(p) {
+    p = (p || '').toUpperCase().trim();
+    return POS_CANON[p] || p;
+}
+
+function posPenalty(a, b) {
+    let ca = POS_COORD[a] || POS_COORD.CM, cb = POS_COORD[b] || POS_COORD.CM;
+    let pen = Math.abs(ca[0] - cb[0]) * FIT_CFG.depthWeight + Math.abs(ca[1] - cb[1]) * FIT_CFG.widthWeight;
+    return Math.min(FIT_CFG.maxOutfield, Math.round(pen));
+}
+
+function positionMultiplier(penalty) {
+    return Math.max(FIT_CFG.minMultiplier, 1 - penalty / FIT_CFG.penaltyDivisor);
+}
+
+function checkPositionFit(player, slotRole) {
+    if (!player) return null;
+    let slot = canonPos(slotRole);
+    let main = canonPos(player.pos);
+    let alts = (player.altPos || []).map(canonPos);
+
+    if (main === slot) return { fit: 'exact', text: 'Chính', class: 'status-exact', penalty: 0, mult: 1 };
+    if (alts.includes(slot)) return { fit: 'alt', text: 'Phụ', class: 'status-alt', penalty: 0, mult: 1 };
+
+    if ((slot === 'GK') !== (main === 'GK')) {
+        return { fit: 'oop', text: `Sai hẳn (-${Math.round((1 - positionMultiplier(FIT_CFG.gkMismatch)) * 100)}%)`, class: 'status-oop', penalty: FIT_CFG.gkMismatch, mult: positionMultiplier(FIT_CFG.gkMismatch) };
+    }
+
+    // Lấy vị trí gần slot nhất trong số vị trí chính + vị trí phụ
+    let best = Math.min(posPenalty(main, slot), ...alts.filter(a => a !== 'GK').map(a => posPenalty(a, slot)));
+    if (best <= FIT_CFG.freeTolerance) return { fit: 'alt', text: 'Phụ', class: 'status-alt', penalty: 0, mult: 1 };
+    let mult = positionMultiplier(best);
+    return { fit: 'oop', text: `Lệch (-${Math.round((1 - mult) * 100)}%)`, class: 'status-oop', penalty: best, mult };
+}
+// ===== POSITION FIT END =====
+
+// ================= DRAFT & FORMATION ASSIGNMENT =================
+function getTeamRoles(team) {
+    return FORMATION_SLOTS[document.getElementById(team === 'red' ? 'formRed' : 'formBlue').value].roles;
+}
+
+// Ô GK phải có đúng 1 thủ môn
+function teamHasGK(team) {
+    let slots = team === 'red' ? slotsRed : slotsBlue;
+    let gkIdx = getTeamRoles(team).indexOf('GK');
+    return gkIdx >= 0 && !!slots[gkIdx] && slots[gkIdx].pos === 'GK';
+}
+
+// Thuật toán Hungarian: gán n hàng -> n cột với tổng chi phí nhỏ nhất. Trả về mảng hàng -> cột.
+function hungarian(a) {
+    const n = a.length, INF = 1e9;
+    let u = new Array(n + 1).fill(0), v = new Array(n + 1).fill(0);
+    let p = new Array(n + 1).fill(0), way = new Array(n + 1).fill(0);
+    for (let i = 1; i <= n; i++) {
+        p[0] = i;
+        let j0 = 0, minv = new Array(n + 1).fill(INF), used = new Array(n + 1).fill(false);
+        do {
+            used[j0] = true;
+            let i0 = p[j0], delta = INF, j1 = 0;
+            for (let j = 1; j <= n; j++) if (!used[j]) {
+                let cur = a[i0 - 1][j - 1] - u[i0] - v[j];
+                if (cur < minv[j]) { minv[j] = cur; way[j] = j0; }
+                if (minv[j] < delta) { delta = minv[j]; j1 = j; }
+            }
+            for (let j = 0; j <= n; j++) {
+                if (used[j]) { u[p[j]] += delta; v[j] -= delta; } else minv[j] -= delta;
+            }
+            j0 = j1;
+        } while (p[j0] !== 0);
+        do { let j1 = way[j0]; p[j0] = p[j1]; j0 = j1; } while (j0);
+    }
+    let res = new Array(n);
+    for (let j = 1; j <= n; j++) res[p[j] - 1] = j - 1;
+    return res;
+}
+
+// Xếp lại các cầu thủ đang có trong 11 ô sao cho tổng điểm phạt vị trí nhỏ nhất
+function autoArrange(team) {
+    let slots = team === 'red' ? slotsRed : slotsBlue;
+    let roles = getTeamRoles(team);
+    let players = slots.filter(Boolean);
+    if (!players.length) return;
+    let n = roles.length, cost = [];
+    for (let i = 0; i < n; i++) {
+        let row = [];
+        for (let j = 0; j < n; j++) {
+            if (i < players.length) {
+                let f = checkPositionFit(players[i], roles[j]);
+                row.push(f.penalty + (f.fit === 'alt' ? 0.1 : 0)); // ưu tiên vị trí chính hơn vị trí phụ
+            } else row.push(0); // dòng giả cho ô còn trống
+        }
+        cost.push(row);
+    }
+    let assign = hungarian(cost);
+    slots.fill(null);
+    players.forEach((p, i) => { slots[assign[i]] = p; });
+}
+
+function autoArrangeClick(team) {
+    autoArrange(team);
+    renderDrafts();
+}
+
+function changeFormation(team) {
+    autoArrange(team); // đổi sơ đồ -> xếp lại người cho hợp vị trí mới
+    renderDrafts();
+}
+
+function renderDrafts() {
+    renderPool();
+    renderTacticalSlots('red');
+    renderTacticalSlots('blue');
+    renderSubList('red');
+    renderSubList('blue');
+
+    document.getElementById('ovrRed').innerText = teamOVR(slotsRed);
+    document.getElementById('ovrBlue').innerText = teamOVR(slotsBlue);
+
+    let redFull = slotsRed.filter(Boolean).length === 11;
+    let blueFull = slotsBlue.filter(Boolean).length === 11;
+    let redReady = redFull && teamHasGK('red');
+    let blueReady = blueFull && teamHasGK('blue');
+
+    // Update Turn Indicator Banner
+    let tBadge = document.getElementById('turnBadge');
+    let tDesc = document.getElementById('turnStatusDesc');
+    if (tBadge) {
+        if (redFull && blueFull && !(redReady && blueReady)) {
+            tBadge.innerText = "⚠️ THIẾU THỦ MÔN";
+            tBadge.style.color = "#ecc94b";
+            tDesc.innerText = "Ô GK phải là thủ môn. Bấm ✕ để bỏ cầu thủ sai chỗ rồi chọn thủ môn trong kho.";
+        } else if (redReady && blueReady) {
+            tBadge.innerText = "✅ ĐÃ CHỌN ĐỦ 11 NGƯỜI";
+            tBadge.style.color = "#48bb78";
+            tDesc.innerText = "Hai đội đã chọn đủ! Bạn có thể xếp lại vị trí 11 cầu thủ bên dưới và Bắt đầu trận đấu.";
+        } else {
+            if (draftTurn === 'red') {
+                tBadge.innerText = `🔴 ĐỘI ĐỎ (Lượt ${draftTurnCount})`;
+                tBadge.style.color = "#fc8181";
+                tDesc.innerText = "(Đến lượt Đội Đỏ chọn 1 cầu thủ)";
+            } else {
+                tBadge.innerText = `🔵 ĐỘI XANH (Lượt ${draftTurnCount})`;
+                tBadge.style.color = "#63b3ed";
+                tDesc.innerText = "(Đến lượt Đội Xanh chọn 1 cầu thủ)";
+            }
+        }
+    }
+
+    let btn = document.getElementById('btnGoMatch');
+    if (redReady && blueReady) {
+        btn.disabled = false;
+        btn.innerText = "Đội hình hoàn tất. Đi tiếp tới Trận Đấu ➡️";
+        btn.style.background = "#48bb78";
+    } else {
+        btn.disabled = true;
+        let rCount = slotsRed.filter(Boolean).length;
+        let bCount = slotsBlue.filter(Boolean).length;
+        if (redFull && blueFull) {
+            let who = [!redReady ? 'Đỏ' : null, !blueReady ? 'Xanh' : null].filter(Boolean).join(' & ');
+            btn.innerText = `Đội ${who} chưa có thủ môn ở ô GK`;
+        } else {
+            btn.innerText = `Chưa đủ 11 vị trí (Đỏ: ${rCount}/11, Xanh: ${bCount}/11)`;
+        }
+        btn.style.background = "#a0aec0";
+    }
+}
+
+function renderPool() {
+    let kw = document.getElementById('searchBox').value.toLowerCase(), html = '';
+    let redFull = slotsRed.filter(Boolean).length >= 11;
+    let blueFull = slotsBlue.filter(Boolean).length >= 11;
+
+    availablePool().forEach(p => {
+        if (kw && !p.name.toLowerCase().includes(kw) && !p.pos.toLowerCase().includes(kw) && !p.season.toLowerCase().includes(kw)) return;
+        let altStr = (p.altPos && p.altPos.length) ? ` | Alt: ${p.altPos.join(',')}` : '';
+
+        // Dynamic button according to turn
+        let btnHtml = '';
+        if (redFull && blueFull) {
+            btnHtml = `<span style="font-size:11px; color:#718096; font-weight:bold;">Đã đủ 11</span>`;
+        } else if (draftTurn === 'red') {
+            btnHtml = `
+                <button class="btn-red" style="padding:5px 10px; font-weight:bold;" onclick="turnPickPlayer('${p.id}', false)">🔴 Chọn Đỏ</button>
+                <button class="btn-sub-red" style="padding:5px 7px;" onclick="turnPickPlayer('${p.id}', true)" ${subsRed.length >= 5 ? 'disabled' : ''} title="Dự bị">Sub</button>
+            `;
+        } else {
+            btnHtml = `
+                <button class="btn-blue" style="padding:5px 10px; font-weight:bold;" onclick="turnPickPlayer('${p.id}', false)">🔵 Chọn Xanh</button>
+                <button class="btn-sub-blue" style="padding:5px 7px;" onclick="turnPickPlayer('${p.id}', true)" ${subsBlue.length >= 5 ? 'disabled' : ''} title="Dự bị">Sub</button>
+            `;
+        }
+
+        html += `<div class="player-card">
+            <div class="player-info">
+                <span class="player-name">${p.pos} | ${p.name}</span>
+                <span class="player-meta">${p.season} ${p.year} | OVR: <b>${calcOVR(p)}</b>${altStr}</span>
+            </div>
+            <div class="draft-btns">
+                ${btnHtml}
+            </div>
+        </div>`;
+    });
+    document.getElementById('listPool').innerHTML = html;
+}
+
+function renderTacticalSlots(team) {
+    let formKey = document.getElementById(team === 'red' ? 'formRed' : 'formBlue').value;
+    let roles = FORMATION_SLOTS[formKey].roles;
+    let teamSlots = team === 'red' ? slotsRed : slotsBlue;
+    let teamRoster = team === 'red' ? rosterRed : rosterBlue;
+    let container = document.getElementById(team === 'red' ? 'slotsRedList' : 'slotsBlueList');
+
+    let html = '';
+    roles.forEach((role, idx) => {
+        let assigned = teamSlots[idx];
+        let fit = assigned ? checkPositionFit(assigned, role) : null;
+        let badgeColor = team === 'red' ? 'badge-red' : 'badge-blue';
+
+        // Build select options from team roster
+        let optHtml = `<option value="">-- Trống (Chọn cầu thủ) --</option>`;
+        teamRoster.forEach(p => {
+            let isCurrent = assigned && assigned.id === p.id;
+            // Show if player is already assigned elsewhere
+            let otherSlotIdx = teamSlots.findIndex((sp, sidx) => sp && sp.id === p.id && sidx !== idx);
+            let note = otherSlotIdx >= 0 ? ` (Slot ${roles[otherSlotIdx]})` : '';
+            optHtml += `<option value="${p.id}" ${isCurrent ? 'selected' : ''}>${p.pos} | ${p.name} (${calcOVR(p)})${note}</option>`;
+        });
+
+        let statusBadge = fit ? `<span class="pos-status ${fit.class}">${fit.text}</span>` : '';
+
+        html += `<div class="slot-row">
+            <span class="slot-badge ${badgeColor}">${role}</span>
+            <select class="slot-select" onchange="assignPlayerToSlot('${team}', ${idx}, this.value)">
+                ${optHtml}
+            </select>
+            ${statusBadge}
+            ${assigned ? `<button class="btn-gray" style="padding:2px 6px; margin-left:4px; border:none; border-radius:3px; color:white; cursor:pointer;" title="Bỏ cầu thủ này (trả về kho)" onclick="undraftPlayer('${assigned.id}','${team}',false)">✕</button>` : ''}
+        </div>`;
+    });
+    container.innerHTML = html;
+}
+
+function renderSubList(team) {
+    let arr = team === 'red' ? subsRed : subsBlue;
+    let elId = team === 'red' ? 'listRedSub' : 'listBlueSub';
+    document.getElementById(team === 'red' ? 'countRedSub' : 'countBlueSub').innerText = arr.length;
+
+    let html = '';
+    arr.forEach(p => {
+        html += `<div class="player-card">
+            <div class="player-info">
+                <span class="player-name">${p.pos} | ${p.name}<span style="color:#718096; font-size:11px;"> (${calcOVR(p)})</span></span>
+            </div>
+            <div class="draft-btns">
+                <button class="btn-gray" onclick="undraftPlayer('${p.id}','${team}',true)">Bỏ</button>
+            </div>
+        </div>`;
+    });
+    document.getElementById(elId).innerHTML = html;
+}
+
+function draftToTeam(id, team, isSub) {
+    let i = pool.findIndex(p => p.id === id);
+    if (i < 0) return;
+    let p = pool.splice(i, 1)[0];
+
+    if (isSub) {
+        (team === 'red' ? subsRed : subsBlue).push(p);
+    } else {
+        let teamRoster = team === 'red' ? rosterRed : rosterBlue;
+        let teamSlots = team === 'red' ? slotsRed : slotsBlue;
+        teamRoster.push(p);
+
+        // Auto-assign into first empty slot matching role or first available
+        let formKey = document.getElementById(team === 'red' ? 'formRed' : 'formBlue').value;
+        let roles = FORMATION_SLOTS[formKey].roles;
+
+        // Chọn slot trống hợp vị trí nhất (ưu tiên chính > phụ > phạt IQ thấp nhất)
+        let rank = f => f.fit === 'exact' ? -2 : f.fit === 'alt' ? -1 : f.penalty;
+        let emptySlotIdx = -1, bestRank = Infinity;
+        teamSlots.forEach((sp, idx) => {
+            if (sp) return;
+            let rk = rank(checkPositionFit(p, roles[idx]));
+            if (rk < bestRank) { bestRank = rk; emptySlotIdx = idx; }
+        });
+        if (emptySlotIdx >= 0) teamSlots[emptySlotIdx] = p;
+    }
+    renderDrafts();
+}
+
+function assignPlayerToSlot(team, slotIdx, playerId) {
+    let teamSlots = team === 'red' ? slotsRed : slotsBlue;
+    let teamRoster = team === 'red' ? rosterRed : rosterBlue;
+
+    if (!playerId) {
+        teamSlots[slotIdx] = null;
+        renderDrafts();
+        return;
+    }
+    let p = teamRoster.find(item => item.id === playerId);
+    if (!p) return;
+
+    // If player already in another slot, swap or clear that slot
+    let existingIdx = teamSlots.findIndex((sp, idx) => sp && sp.id === playerId && idx !== slotIdx);
+    if (existingIdx >= 0) {
+        teamSlots[existingIdx] = teamSlots[slotIdx]; // Swap
+    }
+    teamSlots[slotIdx] = p;
+    renderDrafts();
+}
+
+function undraftPlayer(id, team, isSub) {
+    if (isSub) {
+        let arr = team === 'red' ? subsRed : subsBlue;
+        let i = arr.findIndex(p => p.id === id);
+        if (i >= 0) pool.push(arr.splice(i, 1)[0]);
+    } else {
+        let roster = team === 'red' ? rosterRed : rosterBlue;
+        let slots = team === 'red' ? slotsRed : slotsBlue;
+
+        // Remove from slots
+        let sIdx = slots.findIndex(p => p && p.id === id);
+        if (sIdx >= 0) slots[sIdx] = null;
+
+        // Remove from roster
+        let rIdx = roster.findIndex(p => p.id === id);
+        if (rIdx >= 0) pool.push(roster.splice(rIdx, 1)[0]);
+    }
+    renderDrafts();
+}
+
+function goToMatch() {
+    let redFilled = slotsRed.filter(Boolean);
+    let blueFilled = slotsBlue.filter(Boolean);
+    if (redFilled.length !== 11 || blueFilled.length !== 11) {
+        alert("Lỗi: Mỗi đội phải sắp xếp đủ 11 vị trí chính thức!"); return;
+    }
+    if (!teamHasGK('red') || !teamHasGK('blue')) {
+        alert("Lỗi: Ô GK của mỗi đội phải là một thủ môn!"); return;
+    }
+    document.getElementById('matchFormRed').innerText = `(${document.getElementById('formRed').value})`;
+    document.getElementById('matchFormBlue').innerText = `(${document.getElementById('formBlue').value})`;
+    unlockTab(3);
+    showTab(3);
+}
+
+// ================= 2D PITCH ENGINE (NO BALL, ORGANIC MOVEMENT) =================
+let animFrameId = null;
+let currentEventBadge = null;
+let activePlayerId = null;
+let pitchAttackShift = 0; // -1 for Blue attack, +1 for Red attack, 0 for neutral
+
+function startPitchLoop() {
+    if (animFrameId) cancelAnimationFrame(animFrameId);
+    function loop(time) {
+        drawPitch(time);
+        animFrameId = requestAnimationFrame(loop);
+    }
+    animFrameId = requestAnimationFrame(loop);
+}
+
+function drawPitch(time = 0) {
+    let canvas = document.getElementById('pitchCanvas');
+    if (!canvas) return;
+    let ctx = canvas.getContext('2d');
+    let W = canvas.width, H = canvas.height;
+
+    // 1. Grass stripes
+    let stripes = 12, sW = W / stripes;
+    for (let i = 0; i < stripes; i++) {
+        ctx.fillStyle = (i % 2 === 0) ? '#276749' : '#22543d';
+        ctx.fillRect(i * sW, 0, sW, H);
+    }
+
+    // 2. Pitch lines
+    ctx.strokeStyle = 'rgba(255,255,255,0.75)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(15, 15, W - 30, H - 30);
+
+    // Center Line
+    ctx.beginPath();
+    ctx.moveTo(W / 2, 15); ctx.lineTo(W / 2, H - 15);
+    ctx.stroke();
+
+    // Center Circle & Spot
+    ctx.beginPath();
+    ctx.arc(W / 2, H / 2, 50, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(W / 2, H / 2, 4, 0, Math.PI * 2); ctx.fill();
+
+    // Left Goal & Box (Red defends left goal)
+    ctx.strokeRect(15, H / 2 - 80, 95, 160);
+    ctx.strokeRect(15, H / 2 - 40, 35, 80);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.fillRect(5, H / 2 - 35, 10, 70); // Goal net left
+
+    // Right Goal & Box (Blue defends right goal)
+    ctx.strokeRect(W - 110, H / 2 - 80, 95, 160);
+    ctx.strokeRect(W - 50, H / 2 - 40, 35, 80);
+    ctx.fillRect(W - 15, H / 2 - 35, 10, 70); // Goal net right
+
+    // 3. Render Players with organic movement
+    let fRedKey = document.getElementById('formRed')?.value || '4-4-2';
+    let fBlueKey = document.getElementById('formBlue')?.value || '4-3-3';
+    let redCoords = FORMATION_SLOTS[fRedKey].redCoords;
+    let blueCoords = FORMATION_SLOTS[fBlueKey].blueCoords;
+
+    function renderSquad(slots, coords, isRed) {
+        slots.forEach((p, idx) => {
+            if (!p || idx >= coords.length) return;
+            let c = coords[idx];
+
+            // Tactical shifting:
+            // When team attacks, they shift forward towards opponent goal (+x for Red, -x for Blue).
+            let shiftX = 0;
+            if (isRed) {
+                if (pitchAttackShift > 0) shiftX = (idx === 0) ? 5 : 22; // GK shifts slightly, outfield shifts up
+                else if (pitchAttackShift < 0) shiftX = (idx === 0) ? 0 : -14; // Drops back
+            } else {
+                if (pitchAttackShift < 0) shiftX = (idx === 0) ? -5 : -22;
+                else if (pitchAttackShift > 0) shiftX = (idx === 0) ? 0 : 14;
+            }
+
+            // Organic breathing sway
+            let swayX = Math.sin((time * 0.002) + p.seedX) * 3;
+            let swayY = Math.cos((time * 0.002) + p.seedY) * 2.5;
+
+            let px = (c.x * W) + shiftX + swayX;
+            let py = (c.y * H) + swayY;
+            p._x = px; p._y = py;
+
+            // Highlight if active
+            if (p.id === activePlayerId) {
+                ctx.beginPath();
+                ctx.arc(px, py, 16 + Math.sin(time * 0.01) * 2, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 215, 0, 0.45)';
+                ctx.fill();
+                ctx.strokeStyle = '#ecc94b';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
+
+            // Player Circle
+            ctx.beginPath();
+            ctx.arc(px, py, 10, 0, Math.PI * 2);
+            ctx.fillStyle = isRed ? '#e53e3e' : '#3182ce';
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Tactical Role inside
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 8px Arial';
+            ctx.textAlign = 'center';
+            let roleLabel = c.pos.replace(/^[LR]/, '');
+            ctx.fillText(roleLabel, px, py + 3);
+
+            // Name label below
+            ctx.font = '9px Arial';
+            ctx.fillStyle = '#ffffff';
+            let shortName = p.name.split(' ').pop();
+            ctx.fillText(shortName, px, py + 18);
+        });
+    }
+
+    if (slotsRed.length) renderSquad(slotsRed, redCoords, true);
+    if (slotsBlue.length) renderSquad(slotsBlue, blueCoords, false);
+
+    // 4. Action Badge
+    if (currentEventBadge) {
+        ctx.save();
+        ctx.font = 'bold 15px Arial';
+        ctx.textAlign = 'center';
+        let bw = ctx.measureText(currentEventBadge.text).width + 24;
+        ctx.fillStyle = 'rgba(0,0,0,0.78)';
+        ctx.fillRect(W / 2 - bw / 2, 25, bw, 28);
+        ctx.strokeStyle = currentEventBadge.color || '#48bb78';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(W / 2 - bw / 2, 25, bw, 28);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(currentEventBadge.text, W / 2, 44);
+        ctx.restore();
+    }
+}
+
+// ================= MATCH ENGINE & REALISTIC GOAL TUNING =================
+// ================= TUNING (cân bằng số bàn thắng) =================
+const TUNING = {
+    gk1v1: 2.4,           // thủ môn trong tình huống 1v1 (hệ số nhân vào chỉ số thủ môn)
+    gkThrough: 2.5,       // sút sau đường chọc khe
+    gkHeader: 2.6,        // đánh đầu sau tạt
+    gkLong: 2.1,          // sút xa
+    offTarget1v1: 0.40,   // tỉ lệ sút chệch khi đối mặt
+    offTargetThrough: 0.45,
+    longBlocked: 0.35,    // sút xa bị hậu vệ chặn
+    offTargetLong: 0.45,
+    offTargetHeader: 0.50
+};
+
+function getFatigue(stamina) {
+    if (stamina >= 80) return 1.0;
+    if (stamina >= 60) return 0.95;
+    if (stamina >= 40) return 0.9;
+    if (stamina >= 20) return 0.8;
+    return 0.65;
+}
+
+function resolve(a, b) {
+    if (a + b <= 0) return Math.random() < 0.5;
+    return (Math.random() * 100) <= (a / (a + b) * 100);
+}
+
+// Position Stamina multiplier (CB less, Wingers/Fullbacks more)
+function getPositionStaminaMultiplier(pos) {
+    if (pos === 'GK') return 0.25;
+    if (pos.includes('CB')) return 0.70;
+    if (pos === 'ST' || pos === 'CF') return 0.85;
+    if (pos.includes('DM')) return 1.05;
+    if (pos.includes('CM') || pos.includes('AM')) return 1.0;
+    // Wingers / Fullbacks (LB, RB, LWB, RWB, LM, RM, LW, RW) run the most
+    return 1.18;
+}
+
+function getActualStat(p, baseVal, slotRole, isPaceOrPhysical = false, hasBall = false) {
+    let f = isPaceOrPhysical ? getFatigue(p.stamina) : 1.0;
+    
+    // IQ bonus + hệ số lệch vị trí (đá sai vị trí bị giảm toàn bộ chỉ số)
+    let fit = checkPositionFit(p, slotRole);
+    let iqBonus = 1.0 + ((p.iq || 50) - 50) / 500;
+    let posMult = fit ? fit.mult : 1;
+
+    let finalVal = baseVal * f * iqBonus * posMult;
+    if (hasBall) finalVal *= 0.9; // 10% ball control penalty
+    return finalVal;
+}
+
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function pickN(arr, n) {
+    let copy = [...arr], res = [];
+    for (let i = 0; i < Math.min(n, copy.length); i++) {
+        let idx = Math.floor(Math.random() * copy.length);
+        res.push(copy.splice(idx, 1)[0]);
+    }
+    return res;
+}
+
+let currentMinute = 0, matchInterval = null, isPaused = false;
+let logBox, scoreRed = 0, scoreBlue = 0, extra1 = 0, extra2 = 0, half = 1;
+let matchSummary = { redScorers: [], blueScorers: [] };
+let currentSpeed = 350;
+let shotsRed = 0, shotsBlue = 0, onTargetRed = 0, onTargetBlue = 0, passesRed = 0, passesBlue = 0;
+let subsRemainingRed = 5, subsRemainingBlue = 5;
+// Thẻ đỏ: cầu thủ bị đuổi bị gỡ khỏi slot (slot = null), không được thay người bù
+let sentOffRed = [], sentOffBlue = [];
+const MIN_PLAYERS_ON_PITCH = 7; // đội còn 7 người thì không đuổi thêm (luật bóng đá)
+const RED_CARD_CHANCE = 0.10;
+const MAN_ADVANTAGE = 0.08;    // lợi thế tấn công mỗi người hơn   // xác suất thẻ đỏ khi phạm lỗi kéo người
+
+function sendOff(p, isRedTeam, minute) {
+    let slots = isRedTeam ? slotsRed : slotsBlue;
+    let idx = slots.findIndex(x => x && x.id === p.id);
+    if (idx < 0) return false;
+    if (slots.filter(Boolean).length <= MIN_PLAYERS_ON_PITCH) return false;
+    slots[idx] = null;
+    p.sentOff = true; p.sentOffMin = minute;
+    p.snap = (p.goals || 0) + (p.assists || 0) + (p.shots || 0) + (p.passes || 0) + (p.tackles || 0) + (p.dribbles || 0);
+    (isRedTeam ? sentOffRed : sentOffBlue).push({ p, role: p.sentOffRole, slotIdx: idx });
+    return true;
+}
+
+function setSpeed(ms) {
+    currentSpeed = ms;
+    document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+    if (ms === 600) document.getElementById('sp05').classList.add('active');
+    else if (ms === 350) document.getElementById('sp1').classList.add('active');
+    else if (ms === 180) document.getElementById('sp2').classList.add('active');
+    else if (ms === 80) document.getElementById('sp3').classList.add('active');
+    else document.getElementById('sp5').classList.add('active');
+    if (matchInterval && !isPaused) {
+        clearInterval(matchInterval);
+        matchInterval = setInterval(simulateMinute, currentSpeed);
+    }
+}
+
+function togglePause() {
+    isPaused = !isPaused;
+    let b = document.getElementById('btnPause');
+    if (isPaused) {
+        clearInterval(matchInterval);
+        b.innerText = "▶ Tiếp tục";
+        b.style.background = "#38a169";
+    } else {
+        matchInterval = setInterval(simulateMinute, currentSpeed);
+        b.innerText = "⏸ Tạm dừng";
+        b.style.background = "#dd6b20";
+    }
+}
+
+function pN(p, isRed) {
+    let col = isRed ? '#e53e3e' : '#3182ce';
+    return `<span style="color:${col}; font-weight:bold;">${p.name}</span>`;
+}
+
+function logMsg(time, msg, cls = "") {
+    let d = document.createElement("div");
+    d.className = "log-entry " + cls;
+    d.innerHTML = (time ? `<span class="log-time">${time}'</span>` : "") + ` ${msg}`;
+    logBox.appendChild(d);
+    logBox.scrollTop = logBox.scrollHeight;
+}
+
+function updateStatsHeader() {
+    document.getElementById("homeScore").innerText = scoreRed;
+    document.getElementById("awayScore").innerText = scoreBlue;
+    document.getElementById("shotsRed").innerText = shotsRed;
+    document.getElementById("shotsBlue").innerText = shotsBlue;
+    document.getElementById("onTargetRed").innerText = onTargetRed;
+    document.getElementById("onTargetBlue").innerText = onTargetBlue;
+    let totalP = passesRed + passesBlue;
+    let pR = totalP > 0 ? Math.round((passesRed / totalP) * 100) : 50;
+    document.getElementById("posRed").innerText = pR + "%";
+    document.getElementById("posBlue").innerText = (100 - pR) + "%";
+}
+
+function simulateMinute() {
+    currentMinute++;
+    let disp = currentMinute.toString();
+    if (half === 1 && currentMinute > 45) disp = `45+${currentMinute - 45}`;
+    if (half === 2 && currentMinute > 90) disp = `90+${currentMinute - 90}`;
+
+    document.getElementById("timeMin").innerText = disp + "'";
+    updateStatsHeader();
+
+    // 1. Position-dependent Stamina decrease
+    let fRedKey = document.getElementById('formRed').value;
+    let fBlueKey = document.getElementById('formBlue').value;
+    let rRoles = FORMATION_SLOTS[fRedKey].roles;
+    let bRoles = FORMATION_SLOTS[fBlueKey].roles;
+
+    slotsRed.forEach((p, idx) => {
+        if (!p) return;
+        let roleMul = getPositionStaminaMultiplier(rRoles[idx]);
+        let divisor = Math.max(1, p.sta || 70);
+        p.stamina = Math.max(0, p.stamina - (0.75 * roleMul * (100 / divisor) * (11 / Math.max(1, slotsRed.filter(Boolean).length))));
+    });
+    slotsBlue.forEach((p, idx) => {
+        if (!p) return;
+        let roleMul = getPositionStaminaMultiplier(bRoles[idx]);
+        let divisor = Math.max(1, p.sta || 70);
+        p.stamina = Math.max(0, p.stamina - (0.75 * roleMul * (100 / divisor) * (11 / Math.max(1, slotsBlue.filter(Boolean).length))));
+    });
+
+    if (currentMinute === 45 && half === 1) logMsg(disp, `⏱️ Hiệp 1 có <b>${extra1}</b> phút bù giờ.`);
+    if (currentMinute === 90 && half === 2) logMsg(disp, `⏱️ Hiệp 2 có <b>${extra2}</b> phút bù giờ.`);
+
+    // Half Time
+    if (half === 1 && currentMinute === 45 + extra1) {
+        logMsg("", `--- 🛑 HẾT HIỆP 1 (Tỷ số: ${scoreRed} - ${scoreBlue}) ---`);
+        half = 2; currentMinute = 45;
+        currentEventBadge = { text: "HẾT HIỆP 1 - NGHỈ GIẢI LAO", color: "#ed8936" };
+        pitchAttackShift = 0;
+        togglePause();
+        return;
+    }
+
+    // Full Time
+    if (half === 2 && currentMinute === 90 + extra2) {
+        logMsg("", `--- 🏁 HẾT GIỜ! TỶ SỐ CHUNG CUỘC: ĐỎ ${scoreRed} - ${scoreBlue} XANH ---`);
+        clearInterval(matchInterval);
+        document.getElementById("startBtn").disabled = false;
+        document.getElementById("btnPause").style.display = "none";
+        document.getElementById("btnSub").style.display = "none";
+        currentEventBadge = { text: `HẾT GIỜ! ${scoreRed} - ${scoreBlue}`, color: "#48bb78" };
+        pitchAttackShift = 0;
+        renderMatchSummary();
+        return;
+    }
+
+    // 2. Action Event (Realistic Goal Frequency)
+    // Lệch quân số: mỗi người hơn = +MAN_ADVANTAGE xác suất giành quyền tấn công
+    let nRed = slotsRed.filter(Boolean).length, nBlue = slotsBlue.filter(Boolean).length;
+    let pRedAtk = Math.max(0.2, Math.min(0.8, 0.5 + MAN_ADVANTAGE * (nRed - nBlue)));
+    let isRedAtk = Math.random() < pRedAtk;
+    pitchAttackShift = isRedAtk ? 1 : -1;
+
+    let atkSlots = isRedAtk ? slotsRed : slotsBlue;
+    let defSlots = isRedAtk ? slotsBlue : slotsRed;
+    let atkRoles = isRedAtk ? rRoles : bRoles;
+    let defRoles = isRedAtk ? bRoles : rRoles;
+
+    let atkOF = atkSlots.map((p, i) => ({ p, role: atkRoles[i] })).filter(item => item.p && !item.role.includes('GK'));
+    let defOF = defSlots.map((p, i) => ({ p, role: defRoles[i] })).filter(item => item.p && !item.role.includes('GK'));
+    let gkItem = defSlots.map((p, i) => ({ p, role: defRoles[i] })).find(item => item.role.includes('GK'));
+    let gk = gkItem ? gkItem.p : { name: "Thủ môn", ref: 55, pos_gk: 55, div: 55, han: 55, iq: 50, stamina: 100, saves: 0 };
+
+    let r = Math.random();
+
+    // A. 45% MIDFIELD PASSING / BUILDUP (No shot)
+    if (r < 0.45) {
+        let involved = pickN(atkOF, 3);
+        let defender = pick(defOF);
+        let sCount = 0;
+        involved.forEach(item => {
+            if (resolve(getActualStat(item.p, item.p.pas, item.role), getActualStat(defender.p, defender.p.def, defender.role) * 0.75)) {
+                item.p.passes++; sCount++;
+            }
+        });
+        if (isRedAtk) passesRed += sCount; else passesBlue += sCount;
+        activePlayerId = involved[involved.length - 1].p.id;
+        currentEventBadge = { text: "🔄 Kiểm soát & Triển khai", color: isRedAtk ? "#fc8181" : "#63b3ed" };
+
+        if (sCount >= 2) {
+            logMsg(disp, `🔄 ${involved.map(i => pN(i.p, isRedAtk)).join(' → ')} ban bật giữ bóng chắc chắn bên phần sân đối phương.`);
+        } else {
+            defender.p.tackles++;
+            logMsg(disp, `🛡️ ${pN(defender.p, !isRedAtk)} tranh chấp quyết liệt, thu hồi bóng thành công.`);
+        }
+    }
+    // B. 15% DRIBBLE & BREAKAWAY
+    else if (r < 0.60) {
+        let creator = pick(atkOF), d1 = pick(defOF), d2 = pick(defOF);
+        activePlayerId = creator.p.id;
+
+        if (resolve(getActualStat(creator.p, creator.p.dri, creator.role), getActualStat(d1.p, d1.p.def, d1.role))) {
+            creator.p.dribbles++;
+            currentEventBadge = { text: "⚡️ Đột phá rê bóng", color: "#ecc94b" };
+            logMsg(disp, `⚡️ <b>Đột phá!</b> ${pN(creator.p, isRedAtk)} dùng kỹ thuật vượt qua ${pN(d1.p, !isRedAtk)}!`);
+
+            if (resolve(getActualStat(creator.p, creator.p.pac, creator.role, true, true), getActualStat(d2.p, d2.p.pac, d2.role, true, false))) {
+                currentEventBadge = { text: "🏃 Bứt tốc 1v1", color: "#ed8936" };
+                creator.p.shots++;
+                if (isRedAtk) shotsRed++; else shotsBlue++;
+
+                // REALISTIC FINISH CHECK: 30% shot off target
+                let shotAccuracy = Math.random();
+                if (shotAccuracy < TUNING.offTarget1v1) {
+                    currentEventBadge = { text: "💨 Sút chệch cột dọc", color: "#a0aec0" };
+                    logMsg(disp, `💨 ${pN(creator.p, isRedAtk)} đối mặt nhưng lại dứt điểm đưa bóng đi chệch cột dọc trong gang tấc!`);
+                } else {
+                    if (isRedAtk) onTargetRed++; else onTargetBlue++;
+                    let gkScore = (getActualStat(gk, gk.ref, 'GK') * 0.7 + getActualStat(gk, gk.pos_gk, 'GK') * 0.3) * TUNING.gk1v1; // Buff GK 1v1
+                    if (resolve(getActualStat(creator.p, creator.p.sho, creator.role), gkScore)) {
+                        creator.p.goals++;
+                        currentEventBadge = { text: "⚽️ VÀOOOOOO!", color: "#48bb78" };
+                        let ht = creator.p.goals === 3 ? " 👹 HATTRICK!!!" : creator.p.goals >= 4 ? " 🔥 POKER!!!" : "";
+                        logMsg(disp, `⚽️ VÀOOOOO! ${pN(creator.p, isRedAtk)} bình tĩnh bấm bóng qua người thủ môn ghi bàn!${ht}`, "goal");
+                        if (isRedAtk) { scoreRed++; matchSummary.redScorers.push({ s: creator.p.name, a: null, t: disp }); }
+                        else { scoreBlue++; matchSummary.blueScorers.push({ s: creator.p.name, a: null, t: disp }); }
+                    } else {
+                        gk.saves++;
+                        currentEventBadge = { text: "🧤 Thủ môn cản phá", color: "#805ad5" };
+                        logMsg(disp, `🧤 <b>Xuất thần!</b> ${pN(gk, !isRedAtk)} khép góc kịp thời, cản phá cú sút của ${pN(creator.p, isRedAtk)}!`);
+                    }
+                }
+            } else {
+                if (resolve(100 - d2.p.def, d2.p.def)) {
+                    d2.p.fouls++;
+                    let isRed = Math.random() < RED_CARD_CHANCE;
+                    d2.p.sentOffRole = d2.role;
+                    if (isRed && sendOff(d2.p, !isRedAtk, disp)) {
+                        currentEventBadge = { text: "🟥 THẺ ĐỎ", color: "#e53e3e" };
+                        let left = (!isRedAtk ? slotsRed : slotsBlue).filter(Boolean).length;
+                        logMsg(disp, `💥 🟥 <b>THẺ ĐỎ</b> cho ${pN(d2.p, !isRedAtk)} sau pha kéo người với ${pN(creator.p, isRedAtk)}! Đội còn ${left} người.`, "goal");
+                    } else {
+                        currentEventBadge = { text: "🟨 THẺ VÀNG", color: "#ecc94b" };
+                        logMsg(disp, `💥 🟨 THẺ VÀNG cho ${pN(d2.p, !isRedAtk)} sau pha kéo người với ${pN(creator.p, isRedAtk)}!`);
+                    }
+                } else {
+                    d2.p.tackles++;
+                    logMsg(disp, `🚫 ${pN(d2.p, !isRedAtk)} bọc lót chuẩn xác, chuồi bóng giải nguy.`);
+                }
+            }
+        } else {
+            d1.p.tackles++;
+            logMsg(disp, `🚫 ${pN(d1.p, !isRedAtk)} bắt bài cướp bóng ngay trước mũi giày ${pN(creator.p, isRedAtk)}.`);
+        }
+    }
+    // C. 15% THROUGH PASS
+    else if (r < 0.75) {
+        let passer = pick(atkOF);
+        let otherAtk = atkOF.filter(p => p !== passer);
+        let finisher = pick(otherAtk.length ? otherAtk : atkOF);
+        let d1 = pick(defOF);
+        activePlayerId = passer.p.id;
+        passer.p.passes++;
+        if (isRedAtk) passesRed++; else passesBlue++;
+
+        if (resolve(getActualStat(passer.p, passer.p.pas, passer.role), getActualStat(d1.p, d1.p.def, d1.role))) {
+            activePlayerId = finisher.p.id;
+            currentEventBadge = { text: "👟 Chọc khe thông minh", color: "#4299e1" };
+            logMsg(disp, `👟 <b>Chọc khe!</b> Đường chuyền tinh tế của ${pN(passer.p, isRedAtk)} đưa ${pN(finisher.p, isRedAtk)} vào thế trống trải!`);
+            finisher.p.shots++;
+            if (isRedAtk) shotsRed++; else shotsBlue++;
+
+            let shotRoll = Math.random();
+            if (shotRoll < TUNING.offTargetThrough) {
+                currentEventBadge = { text: "🚀 Sút vọt xà ngang", color: "#a0aec0" };
+                logMsg(disp, `🚀 Cú đệm bóng một chạm của ${pN(finisher.p, isRedAtk)} lại đưa bóng đi vọt xà ngang đáng tiếc!`);
+            } else {
+                if (isRedAtk) onTargetRed++; else onTargetBlue++;
+                if (resolve(getActualStat(finisher.p, finisher.p.sho, finisher.role), getActualStat(gk, gk.ref, 'GK') * TUNING.gkThrough)) {
+                    finisher.p.goals++; passer.p.assists++;
+                    currentEventBadge = { text: "⚽️ VÀOOOOOO!", color: "#48bb78" };
+                    let ht = finisher.p.goals === 3 ? " 👹 HATTRICK!!!" : finisher.p.goals >= 4 ? " 🔥 POKER!!!" : "";
+                    logMsg(disp, `⚽️ VÀOOOOO! ${pN(finisher.p, isRedAtk)} đệm lòng chuẩn xác vào góc xa!${ht}`, "goal");
+                    if (isRedAtk) { scoreRed++; matchSummary.redScorers.push({ s: finisher.p.name, a: passer.p.name, t: disp }); }
+                    else { scoreBlue++; matchSummary.blueScorers.push({ s: finisher.p.name, a: passer.p.name, t: disp }); }
+                } else {
+                    gk.saves++;
+                    currentEventBadge = { text: "🧤 Phản xạ xuất sắc", color: "#805ad5" };
+                    logMsg(disp, `🧤 Cú chạm bóng của ${pN(finisher.p, isRedAtk)} bị ${pN(gk, !isRedAtk)} bay người cản phá ngoạn mục!`);
+                }
+            }
+        } else {
+            d1.p.tackles++;
+            logMsg(disp, `🚫 ${pN(d1.p, !isRedAtk)} cắt được đường chuyền của ${pN(passer.p, isRedAtk)}.`);
+        }
+    }
+    // D. 8% LONG SHOT (Low conversion rate like real life)
+    else if (r < 0.83) {
+        let shooter = pick(atkOF), blockDefender = pick(defOF);
+        activePlayerId = shooter.p.id;
+        shooter.p.shots++;
+        if (isRedAtk) shotsRed++; else shotsBlue++;
+
+        // 35% blocked by defender before reaching GK
+        if (Math.random() < TUNING.longBlocked) {
+            blockDefender.p.tackles++;
+            currentEventBadge = { text: "🧱 Hậu vệ lăn xả chặn sút", color: "#718096" };
+            logMsg(disp, `🧱 ${pN(shooter.p, isRedAtk)} nã đại bác từ xa nhưng ${pN(blockDefender.p, !isRedAtk)} lăn xả lấy thân mình cản bóng!`);
+        } else {
+            let miss = Math.random() < TUNING.offTargetLong;
+            if (miss) {
+                currentEventBadge = { text: "💨 Sút chệch khung thành", color: "#a0aec0" };
+                logMsg(disp, `💨 Cú sút xa trái phá của ${pN(shooter.p, isRedAtk)} đưa bóng đi sạt mép lưới ra ngoài.`);
+            } else {
+                if (isRedAtk) onTargetRed++; else onTargetBlue++;
+                let gkSavePower = (getActualStat(gk, gk.pos_gk, 'GK') + getActualStat(gk, gk.div, 'GK')) * 0.75 * TUNING.gkLong;
+                if (resolve(getActualStat(shooter.p, shooter.p.sho, shooter.role) * 0.75, gkSavePower)) {
+                    shooter.p.goals++;
+                    currentEventBadge = { text: "🚀 SIÊU PHẨM SÚT XA!", color: "#48bb78" };
+                    logMsg(disp, `🚀 <b>SIÊU PHẨM!</b> Tuyệt đỉnh nã đại bác từ 30 mét của ${pN(shooter.p, isRedAtk)} găm thẳng góc chữ A!`, "goal");
+                    if (isRedAtk) { scoreRed++; matchSummary.redScorers.push({ s: shooter.p.name, a: null, t: disp }); }
+                    else { scoreBlue++; matchSummary.blueScorers.push({ s: shooter.p.name, a: null, t: disp }); }
+                } else {
+                    gk.saves++;
+                    currentEventBadge = { text: "🧤 Thủ môn ôm gọn", color: "#805ad5" };
+                    logMsg(disp, `🧤 ${pN(shooter.p, isRedAtk)} sút xa hiểm hóc nhưng ${pN(gk, !isRedAtk)} ôm gọn bóng trong tay.`);
+                }
+            }
+        }
+    }
+    // E. 8% CROSS & DEFENSIVE CLEARANCE
+    else if (r < 0.91) {
+        let crosser = pick(atkOF);
+        let otherCrossAtk = atkOF.filter(p => p !== crosser);
+        let header = pick(otherCrossAtk.length ? otherCrossAtk : atkOF);
+        let d1 = pick(defOF);
+        activePlayerId = crosser.p.id;
+        crosser.p.passes++;
+        if (isRedAtk) passesRed++; else passesBlue++;
+
+        if (resolve(getActualStat(crosser.p, crosser.p.pas, crosser.role), getActualStat(d1.p, d1.p.def, d1.role) * 0.9)) {
+            header.p.shots++;
+            if (isRedAtk) shotsRed++; else shotsBlue++;
+            let hMiss = Math.random() < TUNING.offTargetHeader;
+            if (hMiss) {
+                logMsg(disp, `🦶 ${pN(crosser.p, isRedAtk)} tạt bóng thuận lợi nhưng pha đánh đầu của ${pN(header.p, isRedAtk)} đi vọt xà ngang.`);
+            } else {
+                if (isRedAtk) onTargetRed++; else onTargetBlue++;
+                let hPower = getActualStat(header.p, header.p.phy, header.role, true) * 0.5 + getActualStat(header.p, header.p.sho, header.role) * 0.5;
+                let gkPower = (getActualStat(gk, gk.ref, 'GK') * 0.6 + getActualStat(gk, gk.han, 'GK') * 0.4) * TUNING.gkHeader;
+                if (resolve(hPower, gkPower)) {
+                    header.p.goals++; crosser.p.assists++;
+                    currentEventBadge = { text: "⚽️ ĐÁNH ĐẦU TUNG LƯỚI!", color: "#48bb78" };
+                    logMsg(disp, `⚽️ <b>ĐÁNH ĐẦU!</b> ${pN(header.p, isRedAtk)} bật cao dũng mãnh lắc đầu vào lưới!`, "goal");
+                    if (isRedAtk) { scoreRed++; matchSummary.redScorers.push({ s: header.p.name, a: crosser.p.name, t: disp }); }
+                    else { scoreBlue++; matchSummary.blueScorers.push({ s: header.p.name, a: crosser.p.name, t: disp }); }
+                } else {
+                    gk.saves++;
+                    logMsg(disp, `✋ ${pN(gk, !isRedAtk)} chọn điểm rơi chính xác, bắt dính cú đánh đầu của ${pN(header.p, isRedAtk)}.`);
+                }
+            }
+        } else {
+            d1.p.tackles++;
+            logMsg(disp, `🧱 ${pN(d1.p, !isRedAtk)} phán đoán tốt, đánh đầu phá bóng giải nguy.`);
+        }
+    }
+    // F. 9% DEFENSIVE PRESSURE
+    else {
+        let defenders = pickN(defOF, 3);
+        if (!defenders.length) return;
+        let attacker = pick(atkOF);
+        let mvpDef = defenders.reduce((a, b) => ((b.p.def || 0) > (a.p.def || 0) ? b : a), defenders[0]);
+        mvpDef.p.tackles++;
+        defenders.filter(d => d !== mvpDef).forEach(d => d.p.passes++);
+        activePlayerId = mvpDef.p.id;
+        currentEventBadge = { text: "🛡️ Bắt bài & Giải nguy", color: "#4299e1" };
+        logMsg(disp, `🛡️ ${defenders.map(d => pN(d.p, !isRedAtk)).join(', ')} giăng bẫy phòng ngự kín kẽ, bẻ gãy đợt hãm thành của ${pN(attacker.p, isRedAtk)}.`);
+    }
+}
+
+// ================= SUBSTITUTION SYSTEM =================
+let subTargetTeam = 'red';
+let selectedOutPlayerId = null;
+let selectedInPlayerId = null;
+
+function openSubModal() {
+    isPaused = true;
+    if (matchInterval) clearInterval(matchInterval);
+    document.getElementById('btnPause').innerText = "▶ Tiếp tục";
+    document.getElementById('btnPause').style.background = "#38a169";
+
+    document.getElementById('subModal').style.display = 'flex';
+    switchSubTeam('red');
+}
+
+function closeSubModal() {
+    document.getElementById('subModal').style.display = 'none';
+}
+
+function switchSubTeam(team) {
+    subTargetTeam = team;
+    selectedOutPlayerId = null; selectedInPlayerId = null;
+    document.getElementById('subTabRed').classList.toggle('active', team === 'red');
+    document.getElementById('subTabBlue').classList.toggle('active', team === 'blue');
+    document.getElementById('modalSubsLeft').innerText = team === 'red' ? subsRemainingRed : subsRemainingBlue;
+    renderSubLists();
+}
+
+function renderSubLists() {
+    let onPitch = subTargetTeam === 'red' ? slotsRed : slotsBlue;
+    let onBench = subTargetTeam === 'red' ? subsRed : subsBlue;
+    let formKey = document.getElementById(subTargetTeam === 'red' ? 'formRed' : 'formBlue').value;
+    let roles = FORMATION_SLOTS[formKey].roles;
+
+    let outHtml = '';
+    onPitch.forEach((p, idx) => {
+        if (!p) return;
+        let isSel = p.id === selectedOutPlayerId;
+        let staColor = p.stamina >= 70 ? '#38a169' : p.stamina >= 40 ? '#d69e2e' : '#e53e3e';
+        outHtml += `<div class="sub-item ${isSel ? 'selected' : ''}" onclick="selectSubOut('${p.id}')">
+            <span><b>[${roles[idx]}]</b> ${p.name}</span>
+            <span>
+                <b style="color:${staColor}">${Math.round(p.stamina)}%</b>
+                <div class="sta-meter"><div class="sta-fill" style="width:${p.stamina}%; background:${staColor};"></div></div>
+            </span>
+        </div>`;
+    });
+    document.getElementById('subOutList').innerHTML = outHtml;
+
+    let inHtml = '';
+    if (onBench.length === 0) {
+        inHtml = '<div style="color:#a0aec0; font-size:12px; font-style:italic;">Không có cầu thủ dự bị nào</div>';
+    } else {
+        onBench.forEach(p => {
+            let isSel = p.id === selectedInPlayerId;
+            inHtml += `<div class="sub-item ${isSel ? 'selected' : ''}" onclick="selectSubIn('${p.id}')">
+                <span><b>${p.pos}</b> ${p.name} (${calcOVR(p)})</span>
+                <span style="color:#38a169;">100% STA</span>
+            </div>`;
+        });
+    }
+    document.getElementById('subInList').innerHTML = inHtml;
+}
+
+function selectSubOut(id) { selectedOutPlayerId = id; renderSubLists(); }
+function selectSubIn(id) { selectedInPlayerId = id; renderSubLists(); }
+
+function confirmSubstitution() {
+    let rem = subTargetTeam === 'red' ? subsRemainingRed : subsRemainingBlue;
+    if (rem <= 0) { alert("Đội này đã hết lượt thay người (tối đa 5 lượt)!"); return; }
+    if (!selectedOutPlayerId || !selectedInPlayerId) { alert("Vui lòng chọn 1 cầu thủ trên sân và 1 cầu thủ dự bị!"); return; }
+
+    let onPitch = subTargetTeam === 'red' ? slotsRed : slotsBlue;
+    let onBench = subTargetTeam === 'red' ? subsRed : subsBlue;
+
+    let outIdx = onPitch.findIndex(p => p && p.id === selectedOutPlayerId);
+    let inIdx = onBench.findIndex(p => p && p.id === selectedInPlayerId);
+    if (outIdx < 0 || inIdx < 0) return;
+
+    let pOut = onPitch[outIdx];
+    let pIn = onBench[inIdx];
+
+    // Swap
+    pIn.stamina = 100;
+    pIn.goals = pIn.goals || 0;
+    pIn.assists = pIn.assists || 0;
+    pIn.passes = pIn.passes || 0;
+    pIn.tackles = pIn.tackles || 0;
+    pIn.shots = pIn.shots || 0;
+    pIn.saves = pIn.saves || 0;
+    pIn.dribbles = pIn.dribbles || 0;
+    pIn.fouls = pIn.fouls || 0;
+
+    onPitch[outIdx] = pIn;
+    onBench[inIdx] = pOut;
+
+    if (subTargetTeam === 'red') subsRemainingRed--;
+    else subsRemainingBlue--;
+
+    document.getElementById('subsLeft').innerText = `${subsRemainingRed}/5 (Đỏ), ${subsRemainingBlue}/5 (Xanh)`;
+    logMsg(currentMinute.toString(), `🔄 <b>[Thay người ${subTargetTeam === 'red' ? 'Đội Đỏ' : 'Đội Xanh'}]</b> ${pOut.name} (STA ${Math.round(pOut.stamina)}%) rời sân nhường chỗ cho <b>${pIn.name}</b> (STA 100%)!`, "event");
+
+    closeSubModal();
+}
+
+// ================= RATINGS & POST-MATCH =================
+function calcRating(p, goalsConceded) {
+    let r = 6.0;
+    r += (p.goals || 0) * 1.0;
+    r += (p.assists || 0) * 0.7;
+    r += (p.passes || 0) * 0.12;
+    r += (p.dribbles || 0) * 0.2;
+    r += (p.tackles || 0) * 0.18;
+    r -= (p.fouls || 0) * 0.5;
+    if (p.sentOff) r -= 1.5;
+    r += (p.shots || 0) * 0.05;
+    if (p.pos === 'GK') {
+        r += (p.saves || 0) * 0.45;
+        r -= goalsConceded * 0.35;
+    }
+    return Math.max(3.0, Math.min(10.0, r)).toFixed(1);
+}
+
+function renderMatchSummary() {
+    let sb = document.getElementById("summaryBox"), html = '';
+    html += `<h2 style="text-align:center; color:#2d3748; margin-top:0;">📊 TỔNG KẾT TRẬN ĐẤU</h2>`;
+    html += `<div style="display:flex; justify-content:center; align-items:center; gap:25px; margin-bottom:15px; font-size:18px; font-weight:bold;">
+        <span style="color:#e53e3e;">ĐỘI ĐỎ</span>
+        <span style="font-size:36px; padding:0 15px; background:#edf2f7; border-radius:8px;">${scoreRed} - ${scoreBlue}</span>
+        <span style="color:#3182ce;">ĐỘI XANH</span>
+    </div>`;
+
+    // Goals & Assists
+    html += `<div style="display:flex; justify-content:space-between; margin-bottom:15px; border-bottom:2px solid #edf2f7; padding-bottom:15px;">`;
+    html += `<div style="flex:1;">`;
+    matchSummary.redScorers.forEach(g => {
+        let a = g.a ? ` <span style="font-size:11px; color:#718096;">(kts: ${g.a})</span>` : "";
+        html += `<div style="margin-bottom:3px;">⚽️ <b>${g.s}</b> ${g.t}'${a}</div>`;
+    });
+    if (!matchSummary.redScorers.length) html += `<div style="color:#a0aec0; font-style:italic;">Không có bàn thắng</div>`;
+    html += `</div><div style="flex:1; text-align:right;">`;
+    matchSummary.blueScorers.forEach(g => {
+        let a = g.a ? `<span style="font-size:11px; color:#718096;">(kts: ${g.a}) </span>` : "";
+        html += `<div style="margin-bottom:3px;">${a}<b>${g.s}</b> ${g.t}' ⚽️</div>`;
+    });
+    if (!matchSummary.blueScorers.length) html += `<div style="color:#a0aec0; font-style:italic;">Không có bàn thắng</div>`;
+    html += `</div></div>`;
+
+    // Ratings Table
+    html += `<h3 style="margin-bottom:5px;">⭐ BẢNG ĐIỂM CHI TIẾT CẦU THỦ</h3><table><tr>
+        <th>Đội</th><th>Cầu thủ</th><th>Vị trí đá</th><th>OVR</th><th>⚽</th><th>🅰️</th><th>Chuyền</th><th>Tắc bóng</th><th>Cứu thua</th><th>Lỗi</th><th>STA còn lại</th><th>ĐIỂM</th>
+    </tr>`;
+
+    let fRedKey = document.getElementById('formRed').value;
+    let fBlueKey = document.getElementById('formBlue').value;
+    let rRoles = FORMATION_SLOTS[fRedKey].roles;
+    let bRoles = FORMATION_SLOTS[fBlueKey].roles;
+
+    let row = (p, role, tn, col, gc) => {
+        let rt = calcRating(p, gc);
+        let ov = calcOVR(p);
+        let b = rt >= 8.0 ? 'font-weight:bold; color:#38a169;' : rt <= 5.0 ? 'font-weight:bold; color:#e53e3e;' : '';
+        let sc = p.stamina >= 60 ? '#38a169' : p.stamina >= 30 ? '#d69e2e' : '#e53e3e';
+        html += `<tr>
+            <td style="color:${col}; font-weight:bold;">${tn}</td>
+            <td>${p.name}</td><td><b>${role}</b> <small>(${p.pos})</small></td><td>${ov}</td>
+            <td>${p.goals || 0}</td><td>${p.assists || 0}</td><td>${p.passes || 0}</td><td>${p.tackles || 0}</td>
+            <td>${role.includes('GK') ? (p.saves || 0) : '-'}</td><td>${p.fouls || 0}</td>
+            <td style="color:${sc}; font-weight:bold;">${Math.round(p.stamina)}%</td>
+            <td style="font-size:15px; ${b}">${rt}</td>
+        </tr>`;
+    };
+
+    slotsRed.forEach((p, idx) => p && row(p, rRoles[idx], "Đỏ", "#e53e3e", scoreBlue));
+    subsRed.filter(p => (p.passes || p.tackles || p.goals || p.shots)).forEach(p => row(p, "Sub", "Đỏ", "#e53e3e", scoreBlue));
+    slotsBlue.forEach((p, idx) => p && row(p, bRoles[idx], "Xanh", "#3182ce", scoreRed));
+    subsBlue.filter(p => (p.passes || p.tackles || p.goals || p.shots)).forEach(p => row(p, "Sub", "Xanh", "#3182ce", scoreRed));
+
+    sentOffRed.forEach(o => row(o.p, '🟥 ' + (o.role || o.p.pos), "Đỏ", "#e53e3e", scoreBlue));
+    sentOffBlue.forEach(o => row(o.p, '🟥 ' + (o.role || o.p.pos), "Xanh", "#3182ce", scoreRed));
+    html += `</table>`;
+    sb.innerHTML = html;
+    sb.style.display = "block";
+    sb.scrollIntoView({ behavior: 'smooth' });
+}
+
+function startMatch() {
+    logBox = document.getElementById("logBox");
+    document.getElementById("startBtn").disabled = true;
+    let bPause = document.getElementById("btnPause");
+    if (bPause) {
+        bPause.style.display = "inline-block";
+        bPause.innerText = "⏸ Tạm dừng";
+        bPause.style.background = "#dd6b20";
+    }
+    document.getElementById("btnSub").style.display = "inline-block";
+    logBox.innerHTML = "";
+    scoreRed = 0; scoreBlue = 0; currentMinute = 0; half = 1; isPaused = false;
+    shotsRed = 0; shotsBlue = 0; onTargetRed = 0; onTargetBlue = 0; passesRed = 0; passesBlue = 0;
+    subsRemainingRed = 5; subsRemainingBlue = 5;
+
+    // Khôi phục cầu thủ bị thẻ đỏ về lại đội hình chính trước khi bắt đầu trận mới
+    sentOffRed.forEach(o => {
+        if (o.slotIdx !== undefined && slotsRed[o.slotIdx] === null) slotsRed[o.slotIdx] = o.p;
+    });
+    sentOffBlue.forEach(o => {
+        if (o.slotIdx !== undefined && slotsBlue[o.slotIdx] === null) slotsBlue[o.slotIdx] = o.p;
+    });
+    sentOffRed = []; sentOffBlue = [];
+    document.getElementById('subsLeft').innerText = `5/5`;
+
+    extra1 = Math.floor(Math.random() * 5) + 1;
+    extra2 = Math.floor(Math.random() * 5) + 1;
+    matchSummary = { redScorers: [], blueScorers: [] };
+    document.getElementById("summaryBox").style.display = "none";
+
+    slotsRed.concat(slotsBlue).concat(subsRed).concat(subsBlue).forEach(p => {
+        if (!p) return;
+        p.sentOff = false; p.sentOffMin = null;
+        p.stamina = 100; p.goals = 0; p.assists = 0; p.shots = 0;
+        p.saves = 0; p.tackles = 0; p.passes = 0; p.dribbles = 0; p.fouls = 0;
+    });
+
+    currentEventBadge = { text: "TRẬN ĐẤU BẮT ĐẦU!", color: "#48bb78" };
+    logMsg("", `⚔️ <b>TRẬN ĐẤU BẮT ĐẦU: ĐỘI ĐỎ vs ĐỘI XANH</b>`);
+    startPitchLoop();
+    matchInterval = setInterval(simulateMinute, currentSpeed);
+}
+</script>
+</body>
+</html>
